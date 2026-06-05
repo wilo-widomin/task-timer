@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var store: TimerStore!
     private var statusController: StatusItemController!
     private var tickEngine: TickEngine!
+    private var windowPresenter: WindowPresenter!
     private let notificationService = NotificationService()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -26,6 +27,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // then reconcile any items that fired while the app was not running.
         store.adoptInitialState(persistence.loadSynchronously())
         store.reconcile(now: Date())
+
+        windowPresenter = WindowPresenter(store: store)
 
         statusController = StatusItemController(
             store: store,
@@ -46,17 +49,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         tickEngine?.stop()
     }
 
-    // MARK: - Presentation (filled in during Phase 4)
+    // MARK: - Presentation
 
     private func presentAddTimer() {
-        NSLog("MenuTimer: Add Timer (form arrives in Phase 4)")
+        windowPresenter.showAddTimer()
     }
 
     private func presentAddAlarm() {
-        NSLog("MenuTimer: Add Alarm (form arrives in Phase 4)")
+        windowPresenter.showAddAlarm()
     }
 
     private func presentAbout() {
-        NSLog("MenuTimer: About (window arrives in Phase 4)")
+        windowPresenter.showAbout()
     }
 }
