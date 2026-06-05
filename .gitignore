@@ -27,3 +27,6 @@ xcuserdata/
 
 # Accidental local store copies
 store.json
+
+# Distribución
+dist/
