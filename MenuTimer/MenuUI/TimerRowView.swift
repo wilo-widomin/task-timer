@@ -34,7 +34,7 @@ final class TimerRowView: NSView {
     init(item: TimerItem, now: Date = Date()) {
         self.itemID = item.id
         super.init(frame: NSRect(x: 0, y: 0, width: Self.rowWidth, height: 44))
-        setupSubviews()
+        setupSubviews(initialState: item.state)
         update(with: item, now: now)
     }
 
@@ -45,7 +45,7 @@ final class TimerRowView: NSView {
 
     // MARK: - Layout
 
-    private func setupSubviews() {
+    private func setupSubviews(initialState: ItemState) {
         translatesAutoresizingMaskIntoConstraints = false
 
         titleLabel.font = .menuFont(ofSize: 0)
@@ -64,15 +64,16 @@ final class TimerRowView: NSView {
 
         deleteButton.bezelStyle = .shadowlessSquare
         deleteButton.isBordered = false
-        deleteButton.image = NSImage(systemSymbolName: "trash", accessibilityDescription: "Delete")
         deleteButton.imagePosition = .imageOnly
         deleteButton.contentTintColor = .secondaryLabelColor
         deleteButton.target = self
         deleteButton.action = #selector(deleteTapped)
-        deleteButton.toolTip = "Delete"
         deleteButton.setContentHuggingPriority(.required, for: .horizontal)
         // Ensure the button is clickable inside NSMenuItem.customView
         deleteButton.sendAction(on: .leftMouseDown)
+        // A finished item is "cleared" rather than "deleted"; reflect that in
+        // the glyph and tooltip while keeping the click behaviour identical.
+        configureDeleteButton(for: initialState)
 
         let textStack = NSStackView(views: [titleLabel, subtitleLabel])
         textStack.orientation = .vertical
@@ -103,6 +104,7 @@ final class TimerRowView: NSView {
     func update(with item: TimerItem, now: Date) {
         titleLabel.stringValue = item.title
         subtitleLabel.stringValue = Self.subtitle(for: item)
+        configureDeleteButton(for: item.state)
 
         if item.state == .finished {
             timeLabel.stringValue = "Done"
@@ -111,6 +113,17 @@ final class TimerRowView: NSView {
             timeLabel.stringValue = TimeFormatting.countdown(item.remaining(at: now))
             timeLabel.textColor = .labelColor
         }
+    }
+
+    /// Updates the trailing button's glyph and tooltip for the item's state.
+    /// Finished items show a checkmark ("Clear"); running items show a trash
+    /// ("Delete"). The click action is identical in both cases.
+    private func configureDeleteButton(for state: ItemState) {
+        let isFinished = state == .finished
+        let symbol = isFinished ? "checkmark.circle" : "trash"
+        let label = isFinished ? "Clear" : "Delete"
+        deleteButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
+        deleteButton.toolTip = label
     }
 
     private static func subtitle(for item: TimerItem) -> String {

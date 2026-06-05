@@ -81,8 +81,33 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             addAlarm: { [weak self] in self?.onAddAlarm() },
             about: { [weak self] in self?.onAbout() },
             quit: { NSApp.terminate(nil) },
-            delete: { [weak self] id in self?.store.remove(id: id) }
+            delete: { [weak self] id in self?.confirmDelete(id: id) }
         )
+    }
+
+    /// Asks the user to confirm removing an item, then removes it.
+    ///
+    /// Presented as a modal `NSAlert` (used for both running "Delete" and
+    /// finished "Clear" rows). On confirmation the item is removed and, if the
+    /// menu is still open, its rows are rebuilt immediately so the deleted row
+    /// vanishes without waiting for the menu to be reopened.
+    private func confirmDelete(id: TimerItem.ID) {
+        guard let item = store.items.first(where: { $0.id == id }) else { return }
+
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Delete \(item.title)?"
+        alert.addButton(withTitle: "Delete")
+        alert.addButton(withTitle: "Cancel")
+
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        store.remove(id: id)
+
+        if isMenuOpen {
+            visibleRows = builder.populate(menu, items: store.items, now: Date(), actions: makeActions())
+        }
     }
 
     // MARK: - NSMenuDelegate
