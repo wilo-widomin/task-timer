@@ -2,9 +2,9 @@
 //  AppDelegate.swift
 //  MenuTimer
 //
-//  Wires together the store, status-item menu and 1 Hz tick engine. Form and
-//  About presentation, notification authorization and drift correction are
-//  layered in during later phases.
+//  Application lifecycle: bootstraps the store, status-item menu, forms and the
+//  1 Hz tick engine; requests notification authorization; and reconciles item
+//  state on launch, activation and wake-from-sleep to correct for timer drift.
 //
 
 import AppKit
@@ -19,12 +19,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowPresenter: WindowPresenter!
     private let notificationService = NotificationService()
 
+    // MARK: - Launch
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         let persistence = JSONPersistenceService()
         store = TimerStore(persistence: persistence, notificationService: notificationService)
 
-        // Load the persisted store synchronously to avoid an empty-menu flash,
-        // then reconcile any items that fired while the app was not running.
+        // Synchronous bootstrap load avoids an empty-menu flash; reconcile then
+        // fires anything that elapsed while the app was not running.
         store.adoptInitialState(persistence.loadSynchronously())
         store.reconcile(now: Date())
 
@@ -32,9 +34,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusController = StatusItemController(
             store: store,
-            onAddTimer: { [weak self] in self?.presentAddTimer() },
-            onAddAlarm: { [weak self] in self?.presentAddAlarm() },
-            onAbout: { [weak self] in self?.presentAbout() }
+            onAddTimer: { [weak self] in self?.windowPresenter.showAddTimer() },
+            onAddAlarm: { [weak self] in self?.windowPresenter.showAddAlarm() },
+            onAbout: { [weak self] in self?.windowPresenter.showAbout() }
         )
 
         tickEngine = TickEngine { [weak self] now in
@@ -43,23 +45,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.statusController.tick(now: now)
         }
         tickEngine.start()
+
+        observeWakeFromSleep()
+
+        // Request notification permission without blocking launch.
+        Task { await notificationService.requestAuthorization() }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         tickEngine?.stop()
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
     }
 
-    // MARK: - Presentation
-
-    private func presentAddTimer() {
-        windowPresenter.showAddTimer()
+    /// Opt in to secure state restoration (silences the macOS 14+ warning).
+    func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+        true
     }
 
-    private func presentAddAlarm() {
-        windowPresenter.showAddAlarm()
+    // MARK: - Drift correction
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        // The app may have been inactive long enough for items to elapse;
+        // reconcile against the real clock rather than trusting tick cadence.
+        store?.reconcile(now: Date())
     }
 
-    private func presentAbout() {
-        windowPresenter.showAbout()
+    private func observeWakeFromSleep() {
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(systemDidWake),
+            name: NSWorkspace.didWakeNotification,
+            object: nil
+        )
+    }
+
+    @objc private func systemDidWake() {
+        // Timers do not fire while the machine is asleep; catch up on wake.
+        store?.reconcile(now: Date())
     }
 }
