@@ -2,9 +2,9 @@
 //  AppDelegate.swift
 //  MenuTimer
 //
-//  Phase 0 bootstrap: stand up an NSStatusItem with a minimal menu so the app
-//  launches and lives in the menu bar. This file is expanded in later phases to
-//  wire up the store, tick engine, notifications and reconciliation.
+//  Wires together the store, status-item menu and 1 Hz tick engine. Form and
+//  About presentation, notification authorization and drift correction are
+//  layered in during later phases.
 //
 
 import AppKit
@@ -13,31 +13,50 @@ import AppKit
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
-    private var statusItem: NSStatusItem?
+    private var store: TimerStore!
+    private var statusController: StatusItemController!
+    private var tickEngine: TickEngine!
+    private let notificationService = NotificationService()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        installStatusItem()
+        let persistence = JSONPersistenceService()
+        store = TimerStore(persistence: persistence, notificationService: notificationService)
+
+        // Load the persisted store synchronously to avoid an empty-menu flash,
+        // then reconcile any items that fired while the app was not running.
+        store.adoptInitialState(persistence.loadSynchronously())
+        store.reconcile(now: Date())
+
+        statusController = StatusItemController(
+            store: store,
+            onAddTimer: { [weak self] in self?.presentAddTimer() },
+            onAddAlarm: { [weak self] in self?.presentAddAlarm() },
+            onAbout: { [weak self] in self?.presentAbout() }
+        )
+
+        tickEngine = TickEngine { [weak self] now in
+            guard let self else { return }
+            self.store.tick(now: now)
+            self.statusController.tick(now: now)
+        }
+        tickEngine.start()
     }
 
-    // MARK: - Phase 0 menu-bar bootstrap
+    func applicationWillTerminate(_ notification: Notification) {
+        tickEngine?.stop()
+    }
 
-    private func installStatusItem() {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if let button = item.button {
-            button.image = NSImage(systemSymbolName: "timer", accessibilityDescription: "Menu Timer")
-            button.image?.isTemplate = true
-        }
+    // MARK: - Presentation (filled in during Phase 4)
 
-        let menu = NSMenu()
-        menu.addItem(withTitle: "Menu Timer", action: nil, keyEquivalent: "")
-        menu.addItem(.separator())
-        menu.addItem(
-            withTitle: "Quit Menu Timer",
-            action: #selector(NSApplication.terminate(_:)),
-            keyEquivalent: "q"
-        )
-        item.menu = menu
+    private func presentAddTimer() {
+        NSLog("MenuTimer: Add Timer (form arrives in Phase 4)")
+    }
 
-        statusItem = item
+    private func presentAddAlarm() {
+        NSLog("MenuTimer: Add Alarm (form arrives in Phase 4)")
+    }
+
+    private func presentAbout() {
+        NSLog("MenuTimer: About (window arrives in Phase 4)")
     }
 }

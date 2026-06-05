@@ -1,0 +1,131 @@
+//
+//  TimerRowView.swift
+//  MenuTimer
+//
+//  Custom AppKit view used as an `NSMenuItem.view` for each active timer/alarm.
+//  Layout: [ title / config ]  …  [ remaining ]  [ 🗑 ]
+//
+//  An AppKit view (rather than a hosted SwiftUI view) is used deliberately:
+//  custom views inside `NSMenu` are far better behaved with AppKit, and we need
+//  to mutate just the countdown label every second without rebuilding the menu.
+//
+
+import AppKit
+
+/// A single row in the menu's dynamic section.
+@MainActor
+final class TimerRowView: NSView {
+
+    /// The identity of the item this row represents.
+    let itemID: TimerItem.ID
+
+    /// Invoked when the trash button is clicked.
+    var onDelete: (() -> Void)?
+
+    private let titleLabel = NSTextField(labelWithString: "")
+    private let subtitleLabel = NSTextField(labelWithString: "")
+    private let timeLabel = NSTextField(labelWithString: "")
+    private let deleteButton = NSButton()
+
+    private static let rowWidth: CGFloat = 280
+    private static let horizontalInset: CGFloat = 14
+
+    /// Creates a row for the given item.
+    init(item: TimerItem, now: Date = Date()) {
+        self.itemID = item.id
+        super.init(frame: NSRect(x: 0, y: 0, width: Self.rowWidth, height: 44))
+        setupSubviews()
+        update(with: item, now: now)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // MARK: - Layout
+
+    private func setupSubviews() {
+        translatesAutoresizingMaskIntoConstraints = false
+
+        titleLabel.font = .menuFont(ofSize: 0)
+        titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        subtitleLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        subtitleLabel.textColor = .secondaryLabelColor
+        subtitleLabel.lineBreakMode = .byTruncatingTail
+        subtitleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        timeLabel.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .medium)
+        timeLabel.alignment = .right
+        timeLabel.setContentHuggingPriority(.required, for: .horizontal)
+        timeLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        deleteButton.bezelStyle = .inline
+        deleteButton.isBordered = false
+        deleteButton.image = NSImage(systemSymbolName: "trash", accessibilityDescription: "Delete")
+        deleteButton.imagePosition = .imageOnly
+        deleteButton.contentTintColor = .secondaryLabelColor
+        deleteButton.target = self
+        deleteButton.action = #selector(deleteTapped)
+        deleteButton.toolTip = "Delete"
+        deleteButton.setContentHuggingPriority(.required, for: .horizontal)
+
+        let textStack = NSStackView(views: [titleLabel, subtitleLabel])
+        textStack.orientation = .vertical
+        textStack.alignment = .leading
+        textStack.spacing = 1
+
+        let rowStack = NSStackView(views: [textStack, timeLabel, deleteButton])
+        rowStack.orientation = .horizontal
+        rowStack.alignment = .centerY
+        rowStack.spacing = 10
+        rowStack.translatesAutoresizingMaskIntoConstraints = false
+        rowStack.setHuggingPriority(.defaultLow, for: .horizontal)
+        addSubview(rowStack)
+
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: Self.rowWidth),
+            rowStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Self.horizontalInset),
+            rowStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Self.horizontalInset),
+            rowStack.topAnchor.constraint(equalTo: topAnchor, constant: 5),
+            rowStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -5),
+        ])
+    }
+
+    // MARK: - Updating
+
+    /// Refreshes the row's labels for the given item and reference time.
+    /// Called both on initial build and on every tick (time label only changes).
+    func update(with item: TimerItem, now: Date) {
+        titleLabel.stringValue = item.title
+        subtitleLabel.stringValue = Self.subtitle(for: item)
+
+        if item.state == .finished {
+            timeLabel.stringValue = "Done"
+            timeLabel.textColor = .systemGreen
+        } else {
+            timeLabel.stringValue = TimeFormatting.countdown(item.remaining(at: now))
+            timeLabel.textColor = .labelColor
+        }
+    }
+
+    private static func subtitle(for item: TimerItem) -> String {
+        switch item.kind {
+        case .timer:
+            if let duration = item.configuredDuration {
+                return "Timer · \(TimeFormatting.durationLabel(duration))"
+            }
+            return "Timer"
+        case .alarm:
+            return "Alarm · \(TimeFormatting.alarmLabel(item.fireDate))"
+        }
+    }
+
+    // MARK: - Actions
+
+    @objc private func deleteTapped() {
+        onDelete?()
+    }
+}

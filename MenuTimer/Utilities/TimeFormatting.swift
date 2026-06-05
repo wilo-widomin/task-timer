@@ -1,0 +1,71 @@
+//
+//  TimeFormatting.swift
+//  MenuTimer
+//
+//  Formatting helpers for countdowns and absolute alarm times.
+//
+
+import Foundation
+
+/// Stateless formatting helpers used by the menu rows.
+public enum TimeFormatting {
+
+    /// Formats a remaining duration as a compact countdown string.
+    ///
+    /// - `< 1 hour`  → `"MM:SS"`  (e.g. `"04:09"`)
+    /// - `>= 1 hour` → `"H:MM:SS"` (e.g. `"1:02:09"`)
+    /// - non-positive → `"00:00"`
+    ///
+    /// - Parameter remaining: Seconds remaining.
+    public static func countdown(_ remaining: TimeInterval) -> String {
+        let clamped = max(0, remaining)
+        let total = Int(clamped.rounded(.up))
+        let hours = total / 3_600
+        let minutes = (total % 3_600) / 60
+        let seconds = total % 60
+
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        }
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+
+    /// Formats a configured timer duration as a human label, e.g. `"25 min"`,
+    /// `"1 h 30 min"`, `"45 s"`.
+    public static func durationLabel(_ duration: TimeInterval) -> String {
+        let total = Int(duration.rounded())
+        let hours = total / 3_600
+        let minutes = (total % 3_600) / 60
+        let seconds = total % 60
+
+        var parts: [String] = []
+        if hours > 0 { parts.append("\(hours) h") }
+        if minutes > 0 { parts.append("\(minutes) min") }
+        if seconds > 0 && hours == 0 { parts.append("\(seconds) s") }
+        return parts.isEmpty ? "0 s" : parts.joined(separator: " ")
+    }
+
+    /// Short absolute time for alarms, e.g. `"14:30"` or `"Tomorrow 09:00"`.
+    /// Uses the user's locale and 12/24-hour preference.
+    public static func alarmLabel(_ fireDate: Date, now: Date = Date(), calendar: Calendar = .current) -> String {
+        let timeFormatter = DateFormatter()
+        timeFormatter.locale = .autoupdatingCurrent
+        timeFormatter.timeStyle = .short
+        timeFormatter.dateStyle = .none
+        let time = timeFormatter.string(from: fireDate)
+
+        if calendar.isDate(fireDate, inSameDayAs: now) {
+            return time
+        }
+        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now),
+           calendar.isDate(fireDate, inSameDayAs: tomorrow) {
+            return "Tomorrow \(time)"
+        }
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = .autoupdatingCurrent
+        dateFormatter.dateStyle = .short
+        dateFormatter.timeStyle = .short
+        return dateFormatter.string(from: fireDate)
+    }
+}

@@ -42,6 +42,15 @@ public final class TimerStore: ObservableObject {
 
     // MARK: - Loading & reconciliation
 
+    /// Adopts an already-loaded persisted state without persisting it back.
+    ///
+    /// Used at launch with a synchronous bootstrap read to populate the menu
+    /// immediately. Follow with `reconcile(now:)` to fire any missed items.
+    /// - Parameter store: The persisted state to adopt.
+    public func adoptInitialState(_ store: PersistedStore) {
+        items = sorted(store.items)
+    }
+
     /// Loads persisted items and reconciles them against the current time.
     ///
     /// Any item that fired while the app was not running is transitioned and
