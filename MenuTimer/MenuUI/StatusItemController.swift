@@ -87,21 +87,24 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     /// Asks the user to confirm removing an item, then removes it.
     ///
-    /// Presented as a modal `NSAlert` (used for both running "Delete" and
-    /// finished "Clear" rows). On confirmation the item is removed and, if the
-    /// menu is still open, its rows are rebuilt immediately so the deleted row
-    /// vanishes without waiting for the menu to be reopened.
+    /// A modal `NSAlert` is shown for **running** items (trash icon). Finished
+    /// items (checkmark icon) are removed immediately without confirmation.
+    /// On removal the menu is rebuilt in place if still open, so the row
+    /// vanishes straight away.
     private func confirmDelete(id: TimerItem.ID) {
         guard let item = store.items.first(where: { $0.id == id }) else { return }
 
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        alert.messageText = "Delete \(item.title)?"
-        alert.addButton(withTitle: "Delete")
-        alert.addButton(withTitle: "Cancel")
+        // Finished items (checkmark) skip the confirmation dialog.
+        if item.state == .running {
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = "Delete \(item.title)?"
+            alert.addButton(withTitle: "Delete")
+            alert.addButton(withTitle: "Cancel")
 
-        NSApp.activate(ignoringOtherApps: true)
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
+            NSApp.activate(ignoringOtherApps: true)
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
 
         store.remove(id: id)
 
