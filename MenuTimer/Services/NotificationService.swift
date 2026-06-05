@@ -40,11 +40,19 @@ public final class NotificationService: NotificationServing {
         }
     }
 
+    /// Name of the custom sound for timer notifications.
+    private static let timerSoundName = "timer_beep.wav"
+    /// Name of the custom sound for alarm notifications.
+    private static let alarmSoundName = "alarm_ring.wav"
+
     public func postNotification(for item: TimerItem) {
         let content = UNMutableNotificationContent()
         content.title = item.kind == .timer ? "Timer finished" : "Alarm"
         content.body = item.title
-        content.sound = .default
+
+        // Retro sounds: electronic beep for timers, analog bell for alarms.
+        let soundName = item.kind == .timer ? Self.timerSoundName : Self.alarmSoundName
+        content.sound = UNNotificationSound(named: UNNotificationSoundName(soundName))
 
         // Deliver immediately. `nil` trigger fires the request right away.
         let request = UNNotificationRequest(
