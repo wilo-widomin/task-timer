@@ -62,7 +62,7 @@ final class TimerRowView: NSView {
         timeLabel.setContentHuggingPriority(.required, for: .horizontal)
         timeLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-        deleteButton.bezelStyle = .inline
+        deleteButton.bezelStyle = .shadowlessSquare
         deleteButton.isBordered = false
         deleteButton.image = NSImage(systemSymbolName: "trash", accessibilityDescription: "Delete")
         deleteButton.imagePosition = .imageOnly
@@ -71,6 +71,8 @@ final class TimerRowView: NSView {
         deleteButton.action = #selector(deleteTapped)
         deleteButton.toolTip = "Delete"
         deleteButton.setContentHuggingPriority(.required, for: .horizontal)
+        // Ensure the button is clickable inside NSMenuItem.customView
+        deleteButton.sendAction(on: .leftMouseDown)
 
         let textStack = NSStackView(views: [titleLabel, subtitleLabel])
         textStack.orientation = .vertical
@@ -127,5 +129,18 @@ final class TimerRowView: NSView {
 
     @objc private func deleteTapped() {
         onDelete?()
+    }
+
+    // MARK: - Mouse forwarding
+
+    /// Ensure mouse clicks on the delete button work inside NSMenuItem.
+    override func mouseDown(with event: NSEvent) {
+        let location = convert(event.locationInWindow, from: nil)
+        if deleteButton.frame.contains(location) {
+            // Forward to the delete button
+            deleteButton.mouseDown(with: event)
+        } else {
+            super.mouseDown(with: event)
+        }
     }
 }
