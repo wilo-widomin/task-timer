@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#007AFF"/>
+      <stop offset="100%" stop-color="#5856D6"/>
+    </linearGradient>
+    <linearGradient id="bgDark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0A84FF"/>
+      <stop offset="100%" stop-color="#6D6DFF"/>
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="230.4" fill="url(#bg)" />
+  <circle cx="256" cy="256" r="230.4" fill="none" stroke="#FFFFFF" stroke-opacity="0.2" stroke-width="15.36" />
+  
+  <!-- Clock face - inner white circle -->
+  <circle cx="256" cy="256" r="168.192" fill="white" fill-opacity="0.95" />
+  
+  <!-- Tick marks -->
+  <line x1="256.0" y1="94.7" x2="256.0" y2="117.8" stroke="#8E8E93" stroke-width="12.3" stroke-linecap="round" />
+  <line x1="336.6" y1="116.3" x2="329.7" y2="128.3" stroke="#8E8E93" stroke-width="7.7" stroke-linecap="round" />
+  <line x1="395.7" y1="175.4" x2="383.7" y2="182.3" stroke="#8E8E93" stroke-width="7.7" stroke-linecap="round" />
+  <line x1="417.3" y1="256.0" x2="394.2" y2="256.0" stroke="#8E8E93" stroke-width="12.3" stroke-linecap="round" />
+  <line x1="395.7" y1="336.6" x2="383.7" y2="329.7" stroke="#8E8E93" stroke-width="7.7" stroke-linecap="round" />
+  <line x1="336.6" y1="395.7" x2="329.7" y2="383.7" stroke="#8E8E93" stroke-width="7.7" stroke-linecap="round" />
+  <line x1="256.0" y1="417.3" x2="256.0" y2="394.2" stroke="#8E8E93" stroke-width="12.3" stroke-linecap="round" />
+  <line x1="175.4" y1="395.7" x2="182.3" y2="383.7" stroke="#8E8E93" stroke-width="7.7" stroke-linecap="round" />
+  <line x1="116.3" y1="336.6" x2="128.3" y2="329.7" stroke="#8E8E93" stroke-width="7.7" stroke-linecap="round" />
+  <line x1="94.7" y1="256.0" x2="117.8" y2="256.0" stroke="#8E8E93" stroke-width="12.3" stroke-linecap="round" />
+  <line x1="116.3" y1="175.4" x2="128.3" y2="182.3" stroke="#8E8E93" stroke-width="7.7" stroke-linecap="round" />
+  <line x1="175.4" y1="116.3" x2="182.3" y2="128.3" stroke="#8E8E93" stroke-width="7.7" stroke-linecap="round" />
+  <line x1="256" y1="256" x2="365.6" y2="220.4" stroke="#1C1C1E" stroke-width="18.4" stroke-linecap="round" />
+  <line x1="256" y1="256" x2="325.8" y2="215.7" stroke="#1C1C1E" stroke-width="30.7" stroke-linecap="round" />
+  <circle cx="256" cy="256" r="12.8" fill="#1C1C1E" />
+  <circle cx="256" cy="256" r="195.84" fill="none" stroke="#FF3B30" stroke-width="15.4" stroke-dasharray="235.0 783.4" stroke-linecap="round" transform="rotate(-90 256 256)" />
+</svg>

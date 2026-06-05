@@ -9,6 +9,9 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1A0000000000000000000008 /* MenuTimer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				1A000000000000000000001B /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
 			path = MenuTimer;
 			sourceTree = "<group>";
 		};
@@ -18,6 +21,18 @@
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		1A000000000000000000001B /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Resources/Info.plist,
+				Resources/AppIcon.png,
+				Resources/AppIcon.svg,
+			);
+			target = 1A0000000000000000000004 /* MenuTimer */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXBuildFile section */
 /* End PBXBuildFile section */

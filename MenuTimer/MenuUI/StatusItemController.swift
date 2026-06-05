@@ -55,8 +55,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     private func configureButton() {
         guard let button = statusItem.button else { return }
-        button.image = NSImage(systemSymbolName: "timer", accessibilityDescription: "Menu Timer")
-        button.image?.isTemplate = true
+        // Prefer the bundled menu-bar glyph; fall back to the SF Symbol if the
+        // asset is ever unavailable.
+        let image = NSImage(named: "MenuBarIcon")
+            ?? NSImage(systemSymbolName: "timer", accessibilityDescription: "Menu Timer")
+        image?.isTemplate = true
+        button.image = image
         button.imagePosition = .imageLeading
     }
 

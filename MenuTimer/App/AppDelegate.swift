@@ -9,9 +9,30 @@
 
 import AppKit
 
-/// Application delegate for the MenuTimer agent app.
+/// Application delegate **and** programmatic entry point for the MenuTimer
+/// agent app.
+///
+/// We drive the `NSApplication` lifecycle ourselves (rather than relying on
+/// `NSApplicationMain` / a storyboard) because MenuTimer is a menu-bar agent
+/// with no Dock icon and no main window. Using `@main` with a static `main()`
+/// keeps that explicit control while giving the entry point a `@MainActor`
+/// context, so constructing this `@MainActor`-isolated delegate is legal under
+/// Swift concurrency checking.
+@main
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+
+    static func main() {
+        let application = NSApplication.shared
+        let delegate = AppDelegate()
+        application.delegate = delegate
+
+        // Reinforce LSUIElement=YES at runtime: run as an accessory (menu-bar)
+        // app with no Dock presence and no application menu in the menu bar.
+        application.setActivationPolicy(.accessory)
+
+        application.run()
+    }
 
     private var store: TimerStore!
     private var statusController: StatusItemController!
