@@ -35,6 +35,7 @@ public final class NotificationService: NSObject, NotificationServing {
         // menu-bar app, since firing a timer often coincides with the user
         // interacting with the menu.
         center.delegate = self
+        Self.installCustomSounds()
     }
 
     public func requestAuthorization() async {
@@ -51,6 +52,53 @@ public final class NotificationService: NSObject, NotificationServing {
     private static let timerSoundName = "timer_sound.wav"
     /// Name of the custom sound for alarm notifications.
     private static let alarmSoundName = "alarm_sound.wav"
+
+    /// Copies the bundled custom sounds into `~/Library/Sounds` so macOS can
+    /// find them.
+    ///
+    /// Unlike iOS, `UNNotificationSound(named:)` on macOS does **not** reliably
+    /// resolve sound files from the app bundle — it searches the standard
+    /// `Library/Sounds` directories. A notification whose sound lives only in
+    /// the bundle silently falls back to the default system sound. Installing a
+    /// copy under the user's `Library/Sounds` makes the custom name resolve.
+    private static func installCustomSounds() {
+        let fileManager = FileManager.default
+        guard let library = try? fileManager.url(
+            for: .libraryDirectory, in: .userDomainMask, appropriateFor: nil, create: false
+        ) else { return }
+
+        let soundsDir = library.appendingPathComponent("Sounds", isDirectory: true)
+        do {
+            try fileManager.createDirectory(at: soundsDir, withIntermediateDirectories: true)
+        } catch {
+            NSLog("MenuTimer: could not create \(soundsDir.path): \(error.localizedDescription)")
+            return
+        }
+
+        for name in [timerSoundName, alarmSoundName] {
+            guard let source = Bundle.main.url(forResource: name, withExtension: nil) else {
+                NSLog("MenuTimer: bundled sound '\(name)' not found in app bundle")
+                continue
+            }
+            let destination = soundsDir.appendingPathComponent(name)
+
+            // Skip the copy when an identical file is already installed; refresh
+            // it otherwise so updated sounds ship to existing users.
+            if let srcSize = fileSize(source), let dstSize = fileSize(destination), srcSize == dstSize {
+                continue
+            }
+            try? fileManager.removeItem(at: destination)
+            do {
+                try fileManager.copyItem(at: source, to: destination)
+            } catch {
+                NSLog("MenuTimer: failed to install sound '\(name)': \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private static func fileSize(_ url: URL) -> Int? {
+        (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize
+    }
 
     public func postNotification(for item: TimerItem) {
         let content = UNMutableNotificationContent()

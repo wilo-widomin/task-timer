@@ -89,27 +89,34 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     ///
     /// A modal `NSAlert` is shown for **running** items (trash icon). Finished
     /// items (checkmark icon) are removed immediately without confirmation.
-    /// On removal the menu is rebuilt in place if still open, so the row
-    /// vanishes straight away.
     private func confirmDelete(id: TimerItem.ID) {
         guard let item = store.items.first(where: { $0.id == id }) else { return }
 
-        // Finished items (checkmark) skip the confirmation dialog.
-        if item.state == .running {
-            let alert = NSAlert()
-            alert.alertStyle = .warning
-            alert.messageText = "Delete \(item.title)?"
-            alert.addButton(withTitle: "Delete")
-            alert.addButton(withTitle: "Cancel")
+        // Close the menu before touching it. The row's button fires on
+        // mouse-*down* while the menu is still tracking, so the matching
+        // mouse-up is still pending. If we mutate the menu (removing the row)
+        // or run a modal in-place, that stray mouse-up lands on whatever menu
+        // item has now shifted under the cursor — typically "About Menu Timer"
+        // — and triggers it. Cancelling tracking and deferring the work to the
+        // next run-loop turn lets the menu fully close first.
+        menu.cancelTrackingWithoutAnimation()
 
-            NSApp.activate(ignoringOtherApps: true)
-            guard alert.runModal() == .alertFirstButtonReturn else { return }
-        }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
 
-        store.remove(id: id)
+            // Finished items (checkmark) skip the confirmation dialog.
+            if item.state == .running {
+                let alert = NSAlert()
+                alert.alertStyle = .warning
+                alert.messageText = "Delete \(item.title)?"
+                alert.addButton(withTitle: "Delete")
+                alert.addButton(withTitle: "Cancel")
 
-        if isMenuOpen {
-            visibleRows = builder.populate(menu, items: store.items, now: Date(), actions: makeActions())
+                NSApp.activate(ignoringOtherApps: true)
+                guard alert.runModal() == .alertFirstButtonReturn else { return }
+            }
+
+            self.store.remove(id: id)
         }
     }
 
