@@ -22,12 +22,19 @@ public protocol NotificationServing: AnyObject {
 
 /// `UNUserNotificationCenter`-backed implementation.
 @MainActor
-public final class NotificationService: NotificationServing {
+public final class NotificationService: NSObject, NotificationServing {
 
     private let center: UNUserNotificationCenter
 
     public init(center: UNUserNotificationCenter = .current()) {
         self.center = center
+        super.init()
+        // Become the center's delegate so notifications also present (banner +
+        // sound) while MenuTimer is the active app. Without this, the system
+        // silently suppresses foreground notifications — a common case for a
+        // menu-bar app, since firing a timer often coincides with the user
+        // interacting with the menu.
+        center.delegate = self
     }
 
     public func requestAuthorization() async {
@@ -65,5 +72,20 @@ public final class NotificationService: NotificationServing {
                 NSLog("MenuTimer: failed to post notification: \(error.localizedDescription)")
             }
         }
+    }
+}
+
+// MARK: - UNUserNotificationCenterDelegate
+
+extension NotificationService: UNUserNotificationCenterDelegate {
+
+    /// Present alerts and play the custom sound even when MenuTimer is the
+    /// foreground app; otherwise macOS suppresses them.
+    nonisolated public func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .list, .sound])
     }
 }
