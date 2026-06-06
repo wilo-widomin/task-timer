@@ -30,7 +30,21 @@ public final class NotificationService: NSObject, NotificationServing {
 
     /// Sounds currently playing, retained so ARC does not deallocate them
     /// mid-playback. Cleared as each one finishes (see `NSSoundDelegate`).
-    private var activeSounds: [NSSound] = []
+    private var activeSounds: [PlayingSound] = []
+
+    /// A playing sound plus how many more times it should replay when it ends.
+    @MainActor
+    private final class PlayingSound {
+        let sound: NSSound
+        var remainingReplays: Int
+        init(sound: NSSound, remainingReplays: Int) {
+            self.sound = sound
+            self.remainingReplays = remainingReplays
+        }
+    }
+
+    /// Number of times the alarm sound plays in total.
+    private static let alarmRepeatCount = 3
 
     public init(center: UNUserNotificationCenter = .current()) {
         self.center = center
@@ -85,7 +99,8 @@ public final class NotificationService: NSObject, NotificationServing {
         }
     }
 
-    /// Plays the bundled alert sound for the item's kind.
+    /// Plays the bundled alert sound for the item's kind. The alarm sound
+    /// repeats (see `alarmRepeatCount`); the timer sound plays once.
     private func playSound(for item: TimerItem) {
         let name = item.kind == .timer ? Self.timerSoundName : Self.alarmSoundName
         guard let url = Bundle.main.url(forResource: name, withExtension: nil),
@@ -93,9 +108,10 @@ public final class NotificationService: NSObject, NotificationServing {
             NSLog("MenuTimer: could not load bundled sound '\(name)'")
             return
         }
+        let totalPlays = item.kind == .alarm ? Self.alarmRepeatCount : 1
         sound.delegate = self
         // Retain until playback finishes so overlapping timers each get heard.
-        activeSounds.append(sound)
+        activeSounds.append(PlayingSound(sound: sound, remainingReplays: totalPlays - 1))
         sound.play()
     }
 }
@@ -121,7 +137,14 @@ extension NotificationService: NSSoundDelegate {
 
     nonisolated public func sound(_ sound: NSSound, didFinishPlaying finished: Bool) {
         Task { @MainActor in
-            activeSounds.removeAll { $0 === sound }
+            guard let index = activeSounds.firstIndex(where: { $0.sound === sound }) else { return }
+            // Replay until the requested count is reached; otherwise release it.
+            if finished, activeSounds[index].remainingReplays > 0 {
+                activeSounds[index].remainingReplays -= 1
+                sound.play()
+            } else {
+                activeSounds.remove(at: index)
+            }
         }
     }
 }
