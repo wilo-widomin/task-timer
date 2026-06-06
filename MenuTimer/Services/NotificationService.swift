@@ -41,9 +41,9 @@ public final class NotificationService: NotificationServing {
     }
 
     /// Name of the custom sound for timer notifications.
-    private static let timerSoundName = "timer_beep.wav"
+    private static let timerSoundName = "timer_sound.wav"
     /// Name of the custom sound for alarm notifications.
-    private static let alarmSoundName = "alarm_ring.wav"
+    private static let alarmSoundName = "alarm_sound.wav"
 
     public func postNotification(for item: TimerItem) {
         let content = UNMutableNotificationContent()
