@@ -85,6 +85,11 @@ public final class NotificationService: NSObject, NotificationServing {
         content.body = item.title
         // Silent: the sound is handled by `playSound(for:)` above.
         content.sound = nil
+        // Persistent alert: a time-sensitive notification stays on screen until
+        // the user dismisses it rather than auto-dismissing like a transient
+        // banner. (`.critical` would be even more insistent but needs a
+        // special, Apple-approved entitlement, so we use `.timeSensitive`.)
+        content.interruptionLevel = .timeSensitive
 
         // Deliver immediately. `nil` trigger fires the request right away.
         let request = UNNotificationRequest(
