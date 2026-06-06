@@ -3,10 +3,12 @@
 //  MenuTimer
 //
 //  Thin wrapper over UserNotifications for requesting authorization and posting
-//  a local notification when a timer or alarm fires.
+//  a local notification when a timer or alarm fires. The alert sound is played
+//  directly via NSSound rather than through UNNotificationSound, because custom
+//  notification sounds are unreliable on macOS.
 //
 
-import Foundation
+import AppKit
 import UserNotifications
 
 /// Abstraction over local notifications so the store can be tested without the
@@ -26,16 +28,18 @@ public final class NotificationService: NSObject, NotificationServing {
 
     private let center: UNUserNotificationCenter
 
+    /// Sounds currently playing, retained so ARC does not deallocate them
+    /// mid-playback. Cleared as each one finishes (see `NSSoundDelegate`).
+    private var activeSounds: [NSSound] = []
+
     public init(center: UNUserNotificationCenter = .current()) {
         self.center = center
         super.init()
-        // Become the center's delegate so notifications also present (banner +
-        // sound) while MenuTimer is the active app. Without this, the system
-        // silently suppresses foreground notifications — a common case for a
-        // menu-bar app, since firing a timer often coincides with the user
-        // interacting with the menu.
+        // Become the center's delegate so the banner still presents while
+        // MenuTimer is the active app; otherwise macOS suppresses foreground
+        // notifications — a common case for a menu-bar app, since firing a
+        // timer often coincides with the user interacting with the menu.
         center.delegate = self
-        Self.installCustomSounds()
     }
 
     public func requestAuthorization() async {
@@ -48,66 +52,25 @@ public final class NotificationService: NSObject, NotificationServing {
         }
     }
 
-    /// Name of the custom sound for timer notifications.
+    /// Bundled sound file for timer notifications.
     private static let timerSoundName = "timer_sound.wav"
-    /// Name of the custom sound for alarm notifications.
+    /// Bundled sound file for alarm notifications.
     private static let alarmSoundName = "alarm_sound.wav"
 
-    /// Copies the bundled custom sounds into `~/Library/Sounds` so macOS can
-    /// find them.
-    ///
-    /// Unlike iOS, `UNNotificationSound(named:)` on macOS does **not** reliably
-    /// resolve sound files from the app bundle — it searches the standard
-    /// `Library/Sounds` directories. A notification whose sound lives only in
-    /// the bundle silently falls back to the default system sound. Installing a
-    /// copy under the user's `Library/Sounds` makes the custom name resolve.
-    private static func installCustomSounds() {
-        let fileManager = FileManager.default
-        guard let library = try? fileManager.url(
-            for: .libraryDirectory, in: .userDomainMask, appropriateFor: nil, create: false
-        ) else { return }
-
-        let soundsDir = library.appendingPathComponent("Sounds", isDirectory: true)
-        do {
-            try fileManager.createDirectory(at: soundsDir, withIntermediateDirectories: true)
-        } catch {
-            NSLog("MenuTimer: could not create \(soundsDir.path): \(error.localizedDescription)")
-            return
-        }
-
-        for name in [timerSoundName, alarmSoundName] {
-            guard let source = Bundle.main.url(forResource: name, withExtension: nil) else {
-                NSLog("MenuTimer: bundled sound '\(name)' not found in app bundle")
-                continue
-            }
-            let destination = soundsDir.appendingPathComponent(name)
-
-            // Skip the copy when an identical file is already installed; refresh
-            // it otherwise so updated sounds ship to existing users.
-            if let srcSize = fileSize(source), let dstSize = fileSize(destination), srcSize == dstSize {
-                continue
-            }
-            try? fileManager.removeItem(at: destination)
-            do {
-                try fileManager.copyItem(at: source, to: destination)
-            } catch {
-                NSLog("MenuTimer: failed to install sound '\(name)': \(error.localizedDescription)")
-            }
-        }
-    }
-
-    private static func fileSize(_ url: URL) -> Int? {
-        (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize
-    }
-
     public func postNotification(for item: TimerItem) {
+        // Play the alert sound ourselves. Custom `UNNotificationSound` files are
+        // unreliable on macOS (the system frequently ignores bundle sounds and
+        // falls back to the default), so we drive playback directly and post a
+        // silent notification. Trade-off: this bypasses Do Not Disturb / Focus,
+        // which is acceptable for a timer/alarm — if you set one, you want it
+        // to sound.
+        playSound(for: item)
+
         let content = UNMutableNotificationContent()
         content.title = item.kind == .timer ? "Timer finished" : "Alarm"
         content.body = item.title
-
-        // Retro sounds: electronic beep for timers, analog bell for alarms.
-        let soundName = item.kind == .timer ? Self.timerSoundName : Self.alarmSoundName
-        content.sound = UNNotificationSound(named: UNNotificationSoundName(soundName))
+        // Silent: the sound is handled by `playSound(for:)` above.
+        content.sound = nil
 
         // Deliver immediately. `nil` trigger fires the request right away.
         let request = UNNotificationRequest(
@@ -121,19 +84,44 @@ public final class NotificationService: NSObject, NotificationServing {
             }
         }
     }
+
+    /// Plays the bundled alert sound for the item's kind.
+    private func playSound(for item: TimerItem) {
+        let name = item.kind == .timer ? Self.timerSoundName : Self.alarmSoundName
+        guard let url = Bundle.main.url(forResource: name, withExtension: nil),
+              let sound = NSSound(contentsOf: url, byReference: true) else {
+            NSLog("MenuTimer: could not load bundled sound '\(name)'")
+            return
+        }
+        sound.delegate = self
+        // Retain until playback finishes so overlapping timers each get heard.
+        activeSounds.append(sound)
+        sound.play()
+    }
 }
 
 // MARK: - UNUserNotificationCenterDelegate
 
 extension NotificationService: UNUserNotificationCenterDelegate {
 
-    /// Present alerts and play the custom sound even when MenuTimer is the
-    /// foreground app; otherwise macOS suppresses them.
+    /// Present the banner even when MenuTimer is the foreground app; the sound
+    /// is played separately via `NSSound`, so no `.sound` option here.
     nonisolated public func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        completionHandler([.banner, .list, .sound])
+        completionHandler([.banner, .list])
+    }
+}
+
+// MARK: - NSSoundDelegate
+
+extension NotificationService: NSSoundDelegate {
+
+    nonisolated public func sound(_ sound: NSSound, didFinishPlaying finished: Bool) {
+        Task { @MainActor in
+            activeSounds.removeAll { $0 === sound }
+        }
     }
 }
