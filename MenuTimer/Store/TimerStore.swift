@@ -199,6 +199,93 @@ public final class TimerStore: ObservableObject {
         persist()
     }
 
+    // MARK: - Updates
+
+    /// Updates the title of any item (used by stopwatch editing).
+    public func updateItemTitle(id: TimerItem.ID, title: String) {
+        guard let index = items.firstIndex(where: { $0.id == id }),
+              !title.isEmpty else { return }
+        items[index].title = title
+        persist()
+    }
+
+    /// Fully updates a timer: title, duration, repeat settings.
+    /// Recalculates `fireDate` from `now`.
+    public func updateTimer(
+        id: TimerItem.ID,
+        title: String,
+        duration: TimeInterval,
+        repeatInterval: TimeInterval?,
+        remainingCycles: Int?,
+        now: Date = Date()
+    ) {
+        guard let index = items.firstIndex(where: { $0.id == id }),
+              items[index].kind == .timer,
+              duration > 0 else { return }
+
+        items[index].title = title
+        items[index].configuredDuration = duration
+        items[index].fireDate = now.addingTimeInterval(duration)
+        items[index].repeatInterval = repeatInterval
+        items[index].remainingCycles = remainingCycles
+        items[index].state = .running
+        items[index].didNotify = false
+        items = sorted(items)
+        persist()
+    }
+
+    /// Fully updates an alarm: title, fire date, snooze settings.
+    public func updateAlarm(
+        id: TimerItem.ID,
+        title: String,
+        fireDate: Date,
+        repeatInterval: TimeInterval?,
+        remainingCycles: Int?,
+        now: Date = Date()
+    ) {
+        guard let index = items.firstIndex(where: { $0.id == id }),
+              items[index].kind == .alarm else { return }
+
+        items[index].title = title
+        items[index].fireDate = fireDate
+        items[index].repeatInterval = repeatInterval
+        items[index].remainingCycles = remainingCycles
+        items[index].state = .running
+        items[index].didNotify = false
+        items = sorted(items)
+        persist()
+    }
+
+    /// Fully updates a pomodoro: title, work/break durations, cycles.
+    /// If currently in work phase, recalculates `fireDate` from `now`.
+    public func updatePomodoro(
+        id: TimerItem.ID,
+        title: String,
+        workDuration: TimeInterval,
+        breakDuration: TimeInterval,
+        remainingCycles: Int?,
+        now: Date = Date()
+    ) {
+        guard let index = items.firstIndex(where: { $0.id == id }),
+              items[index].kind == .pomodoro else { return }
+
+        items[index].title = title
+        items[index].configuredDuration = workDuration
+        items[index].breakDuration = breakDuration
+        items[index].remainingCycles = remainingCycles
+
+        // If in work phase, reset the countdown from now.
+        if !items[index].isBreakPhase {
+            items[index].fireDate = now.addingTimeInterval(workDuration)
+        }
+        // If in break phase, leave the current fireDate alone (break is running).
+
+        items[index].state = .running
+        items[index].didNotify = false
+        items = sorted(items)
+        persist()
+    }
+
     /// Removes the item with the given identifier and persists.
     public func remove(id: TimerItem.ID) {
         let before = items.count

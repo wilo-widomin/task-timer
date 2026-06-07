@@ -22,6 +22,7 @@ struct MenuBuilder {
         let quit: () -> Void
         let delete: (TimerItem.ID) -> Void
         let togglePause: (TimerItem.ID) -> Void
+        let edit: (TimerItem.ID) -> Void
     }
 
     /// Repopulates `menu` in place to reflect `items`.
@@ -49,7 +50,7 @@ struct MenuBuilder {
         menu.addItem(.separator())
 
         // ── Dynamic sections ──────────────────────────────────────
-        let rows = appendGroupedSections(to: menu, items: items, now: now, delete: actions.delete, togglePause: actions.togglePause)
+        let rows = appendGroupedSections(to: menu, items: items, now: now, delete: actions.delete, togglePause: actions.togglePause, edit: actions.edit)
 
         // ── Footer ────────────────────────────────────────────────
         menu.addItem(.separator())
@@ -66,7 +67,8 @@ struct MenuBuilder {
         items: [TimerItem],
         now: Date,
         delete: @escaping (TimerItem.ID) -> Void,
-        togglePause: @escaping (TimerItem.ID) -> Void
+        togglePause: @escaping (TimerItem.ID) -> Void,
+        edit: @escaping (TimerItem.ID) -> Void
     ) -> [TimerItem.ID: TimerRowView] {
         guard !items.isEmpty else {
             let empty = NSMenuItem(title: "No active timers, alarms, or stopwatches", action: nil, keyEquivalent: "")
@@ -86,25 +88,25 @@ struct MenuBuilder {
         if !timers.isEmpty {
             appendSeparatorIfNeeded(to: menu, hasPrevious: &hasPreviousSection)
             appendSectionHeader(to: menu, title: "Timers")
-            appendRows(to: menu, items: timers, now: now, delete: delete, togglePause: togglePause, rows: &rows)
+            appendRows(to: menu, items: timers, now: now, delete: delete, togglePause: togglePause, edit: edit, rows: &rows)
         }
 
         if !alarms.isEmpty {
             appendSeparatorIfNeeded(to: menu, hasPrevious: &hasPreviousSection)
             appendSectionHeader(to: menu, title: "Alarms")
-            appendRows(to: menu, items: alarms, now: now, delete: delete, togglePause: togglePause, rows: &rows)
+            appendRows(to: menu, items: alarms, now: now, delete: delete, togglePause: togglePause, edit: edit, rows: &rows)
         }
 
         if !pomodoros.isEmpty {
             appendSeparatorIfNeeded(to: menu, hasPrevious: &hasPreviousSection)
             appendSectionHeader(to: menu, title: "Pomodoros")
-            appendRows(to: menu, items: pomodoros, now: now, delete: delete, togglePause: togglePause, rows: &rows)
+            appendRows(to: menu, items: pomodoros, now: now, delete: delete, togglePause: togglePause, edit: edit, rows: &rows)
         }
 
         if !stopwatches.isEmpty {
             appendSeparatorIfNeeded(to: menu, hasPrevious: &hasPreviousSection)
             appendSectionHeader(to: menu, title: "Stopwatches")
-            appendRows(to: menu, items: stopwatches, now: now, delete: delete, togglePause: togglePause, rows: &rows)
+            appendRows(to: menu, items: stopwatches, now: now, delete: delete, togglePause: togglePause, edit: edit, rows: &rows)
         }
 
         return rows
@@ -137,11 +139,13 @@ struct MenuBuilder {
         now: Date,
         delete: @escaping (TimerItem.ID) -> Void,
         togglePause: @escaping (TimerItem.ID) -> Void,
+        edit: @escaping (TimerItem.ID) -> Void,
         rows: inout [TimerItem.ID: TimerRowView]
     ) {
         for item in items {
             let rowView = TimerRowView(item: item, now: now)
             rowView.onDelete = { delete(item.id) }
+            rowView.onEdit = { edit(item.id) }
             if item.kind == .stopwatch {
                 rowView.onTogglePause = { togglePause(item.id) }
             }

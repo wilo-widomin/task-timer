@@ -20,6 +20,7 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
     private var addAlarmWindow: NSWindow?
     private var addStopwatchWindow: NSWindow?
     private var addPomodoroWindow: NSWindow?
+    private var editWindow: NSWindow?
     private var aboutWindow: NSWindow?
 
     init(store: TimerStore) {
@@ -125,6 +126,62 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
         bringToFront(window)
     }
 
+    // MARK: - Edit
+
+    func showEdit(item: TimerItem) {
+        if let existing = editWindow {
+            existing.close()
+        }
+
+        let view = EditItemView(
+            item: item,
+            onSave: { [weak self] values in self?.applyEdit(id: item.id, values: values) },
+            onCancel: { [weak self] in self?.editWindow?.close() }
+        )
+        let window = makeWindow(title: "Edit", root: view)
+        editWindow = window
+        bringToFront(window)
+    }
+
+    private func applyEdit(id: TimerItem.ID, values: EditValues) {
+        let now = Date()
+        guard let item = store.items.first(where: { $0.id == id }) else { return }
+
+        switch item.kind {
+        case .timer:
+            store.updateTimer(
+                id: id,
+                title: values.title,
+                duration: values.timerDuration ?? item.configuredDuration ?? 300,
+                repeatInterval: values.repeatInterval,
+                remainingCycles: values.remainingCycles,
+                now: now
+            )
+        case .alarm:
+            store.updateAlarm(
+                id: id,
+                title: values.title,
+                fireDate: values.alarmFireDate ?? item.fireDate,
+                repeatInterval: values.repeatInterval,
+                remainingCycles: values.remainingCycles,
+                now: now
+            )
+        case .stopwatch:
+            store.updateItemTitle(id: id, title: values.title)
+        case .pomodoro:
+            store.updatePomodoro(
+                id: id,
+                title: values.title,
+                workDuration: values.pomoWorkDuration ?? item.configuredDuration ?? 1500,
+                breakDuration: values.pomoBreakDuration ?? item.breakDuration,
+                remainingCycles: values.remainingCycles,
+                now: now
+            )
+        }
+
+        editWindow?.close()
+    }
+
     // MARK: - About
 
     func showAbout() {
@@ -170,6 +227,8 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
             addStopwatchWindow = nil
         } else if closing === addPomodoroWindow {
             addPomodoroWindow = nil
+        } else if closing === editWindow {
+            editWindow = nil
         } else if closing === aboutWindow {
             aboutWindow = nil
         }

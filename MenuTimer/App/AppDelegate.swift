@@ -59,6 +59,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onAddAlarm: { [weak self] in self?.windowPresenter.showAddAlarm() },
             onAddStopwatch: { [weak self] in self?.windowPresenter.showAddStopwatch() },
             onAddPomodoro: { [weak self] in self?.windowPresenter.showAddPomodoro() },
+            onEdit: { [weak self] id in
+                guard let self, let item = self.store.items.first(where: { $0.id == id }) else { return }
+                self.windowPresenter.showEdit(item: item)
+            },
             onAbout: { [weak self] in self?.windowPresenter.showAbout() }
         )
 

@@ -25,16 +25,18 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let onAddStopwatch: () -> Void
     private let onAddPomodoro: () -> Void
     private let onAbout: () -> Void
+    private let onEdit: (TimerItem.ID) -> Void
 
     private var visibleRows: [TimerItem.ID: TimerRowView] = [:]
     private var isMenuOpen = false
-
     /// Creates the controller and installs the status item.
     /// - Parameters:
     ///   - store: The shared timer store.
     ///   - onAddTimer: Presents the Add Timer form.
     ///   - onAddAlarm: Presents the Add Alarm form.
     ///   - onAddStopwatch: Presents the Add Stopwatch form.
+    ///   - onAddPomodoro: Presents the Add Pomodoro form.
+    ///   - onEdit: Opens the edit form for an item.
     ///   - onAbout: Presents the About window.
     init(
         store: TimerStore,
@@ -42,6 +44,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         onAddAlarm: @escaping () -> Void,
         onAddStopwatch: @escaping () -> Void,
         onAddPomodoro: @escaping () -> Void,
+        onEdit: @escaping (TimerItem.ID) -> Void,
         onAbout: @escaping () -> Void
     ) {
         self.store = store
@@ -49,6 +52,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         self.onAddAlarm = onAddAlarm
         self.onAddStopwatch = onAddStopwatch
         self.onAddPomodoro = onAddPomodoro
+        self.onEdit = onEdit
         self.onAbout = onAbout
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
@@ -91,7 +95,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             about: { [weak self] in self?.onAbout() },
             quit: { NSApp.terminate(nil) },
             delete: { [weak self] id in self?.confirmDelete(id: id) },
-            togglePause: { [weak self] id in self?.togglePauseStopwatch(id: id) }
+            togglePause: { [weak self] id in self?.togglePauseStopwatch(id: id) },
+            edit: { [weak self] id in self?.onEdit(id) }
         )
     }
 

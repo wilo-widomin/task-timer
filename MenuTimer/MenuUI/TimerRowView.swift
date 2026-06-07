@@ -24,6 +24,8 @@ final class TimerRowView: NSView {
     var onDelete: (() -> Void)?
     /// Invoked when the pause/continue button is clicked (stopwatch only).
     var onTogglePause: (() -> Void)?
+    /// Invoked when the user clicks the title text (edit item).
+    var onEdit: (() -> Void)?
 
     private let titleLabel = NSTextField(labelWithString: "")
     private let subtitleLabel = NSTextField(labelWithString: "")
@@ -120,6 +122,36 @@ final class TimerRowView: NSView {
             rowStack.topAnchor.constraint(equalTo: topAnchor, constant: 5),
             rowStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -5),
         ])
+
+        // Pointing-hand cursor over the title label.
+        addTrackingArea(NSTrackingArea(
+            rect: titleLabel.frame,
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        ))
+    }
+
+    // MARK: - Cursor
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        // Remove old and recreate so the tracking rect tracks layout changes.
+        trackingAreas.forEach { removeTrackingArea($0) }
+        addTrackingArea(NSTrackingArea(
+            rect: titleLabel.frame,
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        ))
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        NSCursor.pointingHand.push()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        NSCursor.pop()
     }
 
     // MARK: - Updating
@@ -225,8 +257,16 @@ final class TimerRowView: NSView {
     // MARK: - Mouse forwarding
 
     /// Ensure mouse clicks on the buttons work inside NSMenuItem.
+    /// Clicks on the title label trigger edit instead.
     override func mouseDown(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
+
+        // Clic en el título → editar item
+        if titleLabel.frame.contains(location) {
+            onEdit?()
+            return
+        }
+
         if !actionButton.isHidden, actionButton.frame.contains(location) {
             actionButton.mouseDown(with: event)
         } else if deleteButton.frame.contains(location) {
