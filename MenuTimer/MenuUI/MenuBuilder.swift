@@ -16,9 +16,11 @@ struct MenuBuilder {
     struct Actions {
         let addTimer: () -> Void
         let addAlarm: () -> Void
+        let addStopwatch: () -> Void
         let about: () -> Void
         let quit: () -> Void
         let delete: (TimerItem.ID) -> Void
+        let togglePause: (TimerItem.ID) -> Void
     }
 
     /// Repopulates `menu` in place to reflect `items`.
@@ -40,9 +42,10 @@ struct MenuBuilder {
 
         menu.addItem(BlockMenuItem(title: "Add Timer…", keyEquivalent: "t", handler: actions.addTimer))
         menu.addItem(BlockMenuItem(title: "Add Alarm…", keyEquivalent: "a", handler: actions.addAlarm))
+        menu.addItem(BlockMenuItem(title: "Add Stopwatch…", keyEquivalent: "s", handler: actions.addStopwatch))
         menu.addItem(.separator())
 
-        let rows = appendDynamicSection(to: menu, items: items, now: now, delete: actions.delete)
+        let rows = appendDynamicSection(to: menu, items: items, now: now, delete: actions.delete, togglePause: actions.togglePause)
 
         menu.addItem(.separator())
         menu.addItem(BlockMenuItem(title: "About Menu Timer", handler: actions.about))
@@ -57,10 +60,11 @@ struct MenuBuilder {
         to menu: NSMenu,
         items: [TimerItem],
         now: Date,
-        delete: @escaping (TimerItem.ID) -> Void
+        delete: @escaping (TimerItem.ID) -> Void,
+        togglePause: @escaping (TimerItem.ID) -> Void
     ) -> [TimerItem.ID: TimerRowView] {
         guard !items.isEmpty else {
-            let empty = NSMenuItem(title: "No active timers or alarms", action: nil, keyEquivalent: "")
+            let empty = NSMenuItem(title: "No active timers, alarms, or stopwatches", action: nil, keyEquivalent: "")
             empty.isEnabled = false
             menu.addItem(empty)
             return [:]
@@ -70,6 +74,9 @@ struct MenuBuilder {
         for item in items {
             let rowView = TimerRowView(item: item, now: now)
             rowView.onDelete = { delete(item.id) }
+            if item.kind == .stopwatch {
+                rowView.onTogglePause = { togglePause(item.id) }
+            }
 
             let menuItem = NSMenuItem()
             menuItem.view = rowView

@@ -2,15 +2,15 @@
 //  TimerStore.swift
 //  MenuTimer
 //
-//  The single source of truth for all timers and alarms. A lightweight MVVM
-//  view-model: an `ObservableObject` that owns the item list, drives firing on
-//  each tick, and persists every mutation.
+//  The single source of truth for all timers, alarms and stopwatches. A
+//  lightweight MVVM view-model: an `ObservableObject` that owns the item list,
+//  drives firing on each tick, and persists every mutation.
 //
 
 import Foundation
 import Combine
 
-/// Observable owner of all timers and alarms.
+/// Observable owner of all timers, alarms and stopwatches.
 ///
 /// All access is `@MainActor`-isolated: mutations happen on the main thread and
 /// persistence is dispatched asynchronously to the (background) persistence
@@ -18,7 +18,8 @@ import Combine
 @MainActor
 public final class TimerStore: ObservableObject {
 
-    /// All tracked items, ordered by soonest fire date first.
+    /// All tracked items, ordered by soonest fire date first (timers/alarms)
+    /// followed by stopwatches sorted by creation time.
     @Published public private(set) var items: [TimerItem] = []
 
     private let persistence: PersistenceService
@@ -93,6 +94,42 @@ public final class TimerStore: ObservableObject {
         return item
     }
 
+    /// Adds a running stopwatch and persists.
+    /// - Returns: The newly created item.
+    @discardableResult
+    public func addStopwatch(title: String, now: Date = Date()) -> TimerItem {
+        let item = TimerItem.stopwatch(title: title, now: now)
+        items = sorted(items + [item])
+        persist()
+        return item
+    }
+
+    /// Pauses a running stopwatch, capturing accumulated elapsed time.
+    /// No-op if the item is not a running stopwatch.
+    public func pauseStopwatch(id: TimerItem.ID, now: Date = Date()) {
+        guard let index = items.firstIndex(where: { $0.id == id }),
+              items[index].kind == .stopwatch,
+              items[index].state == .running,
+              let started = items[index].lastStartedDate else { return }
+
+        items[index].accumulatedElapsed += now.timeIntervalSince(started)
+        items[index].lastStartedDate = nil
+        items[index].state = .paused
+        persist()
+    }
+
+    /// Resumes a paused stopwatch.
+    /// No-op if the item is not a paused stopwatch.
+    public func continueStopwatch(id: TimerItem.ID, now: Date = Date()) {
+        guard let index = items.firstIndex(where: { $0.id == id }),
+              items[index].kind == .stopwatch,
+              items[index].state == .paused else { return }
+
+        items[index].lastStartedDate = now
+        items[index].state = .running
+        persist()
+    }
+
     /// Removes the item with the given identifier and persists.
     public func remove(id: TimerItem.ID) {
         let before = items.count
@@ -102,7 +139,7 @@ public final class TimerStore: ObservableObject {
     }
 
     /// Removes all finished items and persists. Useful for a "clear finished"
-    /// affordance.
+    /// affordance. Stopwatches (which never finish) are unaffected.
     public func clearFinished() {
         let before = items.count
         items.removeAll { $0.state == .finished }
@@ -133,14 +170,33 @@ public final class TimerStore: ObservableObject {
 
     // MARK: - Helpers
 
-    /// Sorts running items by soonest fire date, with finished items last.
+    /// Sorts running items by soonest fire date first, with finished items
+    /// last. Stopwatches are placed after timers/alarms, sorted by creation
+    /// time (oldest first).
     private func sorted(_ items: [TimerItem]) -> [TimerItem] {
         items.sorted { lhs, rhs in
-            if lhs.state != rhs.state {
-                return lhs.state == .running   // running before finished
-            }
+            // Group: running timers/alarms, then stopwatches, then finished
+            let lhsGroup = sortGroup(lhs)
+            let rhsGroup = sortGroup(rhs)
+            if lhsGroup != rhsGroup { return lhsGroup < rhsGroup }
+
+            // Within running timers/alarms: soonest fire date first
+            if lhsGroup == 0 { return lhs.fireDate < rhs.fireDate }
+            // Within stopwatches: oldest first
+            if lhsGroup == 1 { return lhs.createdAt < rhs.createdAt }
+            // Within finished: soonest fire date first
             return lhs.fireDate < rhs.fireDate
         }
+    }
+
+    /// Sort group:
+    /// 0 = running timer/alarm
+    /// 1 = stopwatch (any state: running or paused)
+    /// 2 = finished timer/alarm
+    private func sortGroup(_ item: TimerItem) -> Int {
+        if item.kind == .stopwatch { return 1 }
+        if item.state == .finished { return 2 }
+        return 0
     }
 
     /// Persists the current item list off the main thread. Failures are logged

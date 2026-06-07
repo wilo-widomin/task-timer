@@ -33,6 +33,8 @@ public struct FireScheduler: Sendable {
     public func process(items: inout [TimerItem], now: Date) -> [TimerItem] {
         var fired: [TimerItem] = []
         for index in items.indices {
+            // Stopwatches don't fire — they count up indefinitely.
+            guard items[index].kind != .stopwatch else { continue }
             guard items[index].hasFired(at: now), !items[index].didNotify else { continue }
             items[index].state = .finished
             items[index].didNotify = true

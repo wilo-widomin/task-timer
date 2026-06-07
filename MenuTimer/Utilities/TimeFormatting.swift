@@ -10,6 +10,30 @@ import Foundation
 /// Stateless formatting helpers used by the menu rows.
 public enum TimeFormatting {
 
+    /// Formats an elapsed duration as a compact string.
+    ///
+    /// - `< 1 hour`  → `"MM:SS"`  (e.g. `"04:09"`)
+    /// - `>= 1 hour` → `"H:MM:SS"` (e.g. `"1:02:09"`)
+    /// - `>= 1 day`  → `"D:H:MM:SS"` (e.g. `"1:02:09:05"`)
+    ///
+    /// - Parameter elapsed: Seconds elapsed.
+    public static func elapsed(_ elapsed: TimeInterval) -> String {
+        let clamped = max(0, elapsed)
+        let total = Int(clamped)
+        let days = total / 86_400
+        let hours = (total % 86_400) / 3_600
+        let minutes = (total % 3_600) / 60
+        let seconds = total % 60
+
+        if days > 0 {
+            return String(format: "%d:%d:%02d:%02d", days, hours, minutes, seconds)
+        }
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        }
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+
     /// Formats a remaining duration as a compact countdown string.
     ///
     /// - `< 1 hour`  → `"MM:SS"`  (e.g. `"04:09"`)

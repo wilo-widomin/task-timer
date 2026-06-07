@@ -12,11 +12,13 @@ import Foundation
 public struct PersistedStore: Codable, Equatable, Sendable {
     /// The schema version of the persisted file, used to drive migrations.
     public var schemaVersion: Int
-    /// All tracked timers and alarms.
+    /// All tracked timers, alarms and stopwatches.
     public var items: [TimerItem]
 
     /// The schema version produced by the current build.
-    public static let currentSchemaVersion = 1
+    /// Version 2: added `accumulatedElapsed` and `lastStartedDate` fields for
+    /// stopwatches.
+    public static let currentSchemaVersion = 2
 
     public init(schemaVersion: Int = PersistedStore.currentSchemaVersion, items: [TimerItem] = []) {
         self.schemaVersion = schemaVersion

@@ -4,6 +4,7 @@
 //
 //  Custom AppKit view used as an `NSMenuItem.view` for each active timer/alarm.
 //  Layout: [ title / config ]  …  [ remaining ]  [ 🗑 ]
+//  For stopwatches: [ title / config ]  …  [ elapsed ]  [⏸/▶️]  [ 🗑 ]
 //
 //  An AppKit view (rather than a hosted SwiftUI view) is used deliberately:
 //  custom views inside `NSMenu` are far better behaved with AppKit, and we need
@@ -21,11 +22,16 @@ final class TimerRowView: NSView {
 
     /// Invoked when the trash button is clicked.
     var onDelete: (() -> Void)?
+    /// Invoked when the pause/continue button is clicked (stopwatch only).
+    var onTogglePause: (() -> Void)?
 
     private let titleLabel = NSTextField(labelWithString: "")
     private let subtitleLabel = NSTextField(labelWithString: "")
     private let timeLabel = NSTextField(labelWithString: "")
+    private let actionButton = NSButton()
     private let deleteButton = NSButton()
+
+    private var isStopwatch = false
 
     private static let rowWidth: CGFloat = 280
     private static let horizontalInset: CGFloat = 14
@@ -33,6 +39,7 @@ final class TimerRowView: NSView {
     /// Creates a row for the given item.
     init(item: TimerItem, now: Date = Date()) {
         self.itemID = item.id
+        self.isStopwatch = item.kind == .stopwatch
         super.init(frame: NSRect(x: 0, y: 0, width: Self.rowWidth, height: 44))
         setupSubviews(initialState: item.state)
         update(with: item, now: now)
@@ -62,6 +69,17 @@ final class TimerRowView: NSView {
         timeLabel.setContentHuggingPriority(.required, for: .horizontal)
         timeLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
+        // Stopwatch action button (pause/continue)
+        actionButton.bezelStyle = .shadowlessSquare
+        actionButton.isBordered = false
+        actionButton.imagePosition = .imageOnly
+        actionButton.contentTintColor = .secondaryLabelColor
+        actionButton.target = self
+        actionButton.action = #selector(actionTapped)
+        actionButton.setContentHuggingPriority(.required, for: .horizontal)
+        actionButton.sendAction(on: .leftMouseDown)
+        actionButton.isHidden = !isStopwatch
+
         deleteButton.bezelStyle = .shadowlessSquare
         deleteButton.isBordered = false
         deleteButton.imagePosition = .imageOnly
@@ -80,7 +98,12 @@ final class TimerRowView: NSView {
         textStack.alignment = .leading
         textStack.spacing = 1
 
-        let rowStack = NSStackView(views: [textStack, timeLabel, deleteButton])
+        let buttonStack = NSStackView(views: [timeLabel, actionButton, deleteButton])
+        buttonStack.orientation = .horizontal
+        buttonStack.alignment = .centerY
+        buttonStack.spacing = isStopwatch ? 6 : 10
+
+        let rowStack = NSStackView(views: [textStack, buttonStack])
         rowStack.orientation = .horizontal
         rowStack.alignment = .centerY
         rowStack.spacing = 10
@@ -102,17 +125,32 @@ final class TimerRowView: NSView {
     /// Refreshes the row's labels for the given item and reference time.
     /// Called both on initial build and on every tick (time label only changes).
     func update(with item: TimerItem, now: Date) {
+        isStopwatch = item.kind == .stopwatch
         titleLabel.stringValue = item.title
         subtitleLabel.stringValue = Self.subtitle(for: item)
         configureDeleteButton(for: item.state)
+        actionButton.isHidden = !isStopwatch
 
         if item.state == .finished {
             timeLabel.stringValue = "Done"
             timeLabel.textColor = .systemGreen
+        } else if isStopwatch {
+            timeLabel.stringValue = TimeFormatting.elapsed(item.elapsed(at: now))
+            timeLabel.textColor = .labelColor
+            configureActionButton(for: item.state)
         } else {
             timeLabel.stringValue = TimeFormatting.countdown(item.remaining(at: now))
             timeLabel.textColor = .labelColor
         }
+    }
+
+    /// Updates the pause/continue button for the stopwatch state.
+    private func configureActionButton(for state: ItemState) {
+        let isPaused = state == .paused
+        let symbol = isPaused ? "play.fill" : "pause.fill"
+        let label = isPaused ? "Continue" : "Pause"
+        actionButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
+        actionButton.toolTip = label
     }
 
     /// Updates the trailing button's glyph and tooltip for the item's state.
@@ -135,10 +173,16 @@ final class TimerRowView: NSView {
             return "Timer"
         case .alarm:
             return "Alarm · \(TimeFormatting.alarmLabel(item.fireDate))"
+        case .stopwatch:
+            return item.state == .paused ? "Stopwatch · Paused" : "Stopwatch"
         }
     }
 
     // MARK: - Actions
+
+    @objc private func actionTapped() {
+        onTogglePause?()
+    }
 
     @objc private func deleteTapped() {
         onDelete?()
@@ -146,11 +190,12 @@ final class TimerRowView: NSView {
 
     // MARK: - Mouse forwarding
 
-    /// Ensure mouse clicks on the delete button work inside NSMenuItem.
+    /// Ensure mouse clicks on the buttons work inside NSMenuItem.
     override func mouseDown(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
-        if deleteButton.frame.contains(location) {
-            // Forward to the delete button
+        if actionButton.frame.contains(location) {
+            actionButton.mouseDown(with: event)
+        } else if deleteButton.frame.contains(location) {
             deleteButton.mouseDown(with: event)
         } else {
             super.mouseDown(with: event)

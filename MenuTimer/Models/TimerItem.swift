@@ -2,11 +2,12 @@
 //  TimerItem.swift
 //  MenuTimer
 //
-//  Core domain model. A `TimerItem` represents either a countdown timer or an
-//  absolute-time alarm. The design principle is that the *fire date* is the
-//  single source of truth: the remaining time is always derived from
-//  `fireDate - now`, never stored. This keeps items correct across sleep,
-//  reboots and wall-clock changes.
+//  Core domain model. A `TimerItem` represents either a countdown timer, an
+//  absolute-time alarm, or a stopwatch that counts elapsed time. The design
+//  principle for timers and alarms is that the *fire date* is the single source
+//  of truth: the remaining time is derived from `fireDate - now`, never stored.
+//  For stopwatches, elapsed time is derived from `lastStartedDate` +
+//  `accumulatedElapsed` to survive pauses.
 //
 
 import Foundation
@@ -17,29 +18,34 @@ public enum ItemKind: String, Codable, Sendable {
     case timer
     /// An alarm created from an absolute date/time (`fireDate` is that instant).
     case alarm
+    /// A stopwatch that counts elapsed time. Can be paused and resumed.
+    case stopwatch
 }
 
 /// The lifecycle state of a scheduled item.
 public enum ItemState: String, Codable, Sendable {
-    /// The item is counting down towards its fire date.
+    /// The item is counting down (or counting up for stopwatches).
     case running
+    /// The item is paused (stopwatch only).
+    case paused
     /// The item has reached its fire date and is no longer counting down.
     case finished
 }
 
-/// A single timer or alarm tracked by the app.
+/// A single timer, alarm, or stopwatch tracked by the app.
 ///
 /// Instances are value types and `Codable`, forming the unit of persistence.
 public struct TimerItem: Identifiable, Codable, Equatable, Sendable {
     /// Stable unique identity, also used as the notification request identifier.
     public let id: UUID
-    /// Whether this is a countdown timer or an absolute alarm.
+    /// Whether this is a countdown timer, absolute alarm, or stopwatch.
     public let kind: ItemKind
     /// User-facing description shown in the menu and notification.
     public var title: String
     /// When the item was created.
     public let createdAt: Date
-    /// The absolute instant at which the item fires. Single source of truth.
+    /// The absolute instant at which the item fires. Single source of truth for
+    /// timers and alarms. Not used for stopwatches.
     public var fireDate: Date
     /// Original configured duration in seconds. Present only for `.timer` items.
     public var configuredDuration: TimeInterval?
@@ -48,6 +54,12 @@ public struct TimerItem: Identifiable, Codable, Equatable, Sendable {
     /// Whether a user notification has already been posted for this firing.
     /// Guarantees notifications are delivered exactly once (idempotency).
     public var didNotify: Bool
+    /// Accumulated elapsed seconds across pause/resume cycles (stopwatch only).
+    /// Set when pausing: `accumulatedElapsed += now - lastStartedDate`.
+    public var accumulatedElapsed: TimeInterval
+    /// When the stopwatch was last started or resumed. `nil` when paused.
+    /// Used to derive current elapsed without updating on every tick.
+    public var lastStartedDate: Date?
 
     /// Designated initializer.
     public init(
@@ -58,7 +70,9 @@ public struct TimerItem: Identifiable, Codable, Equatable, Sendable {
         fireDate: Date,
         configuredDuration: TimeInterval? = nil,
         state: ItemState = .running,
-        didNotify: Bool = false
+        didNotify: Bool = false,
+        accumulatedElapsed: TimeInterval = 0,
+        lastStartedDate: Date? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -68,6 +82,32 @@ public struct TimerItem: Identifiable, Codable, Equatable, Sendable {
         self.configuredDuration = configuredDuration
         self.state = state
         self.didNotify = didNotify
+        self.accumulatedElapsed = accumulatedElapsed
+        self.lastStartedDate = lastStartedDate
+    }
+}
+
+// MARK: - Codable (backward-compatible with schema v1)
+
+extension TimerItem {
+    private enum CodingKeys: String, CodingKey {
+        case id, kind, title, createdAt, fireDate, configuredDuration,
+             state, didNotify, accumulatedElapsed, lastStartedDate
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        kind = try container.decode(ItemKind.self, forKey: .kind)
+        title = try container.decode(String.self, forKey: .title)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        fireDate = try container.decode(Date.self, forKey: .fireDate)
+        configuredDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .configuredDuration)
+        state = try container.decode(ItemState.self, forKey: .state)
+        didNotify = try container.decode(Bool.self, forKey: .didNotify)
+        // New fields in schema v2: default to 0/nil when absent (old data).
+        accumulatedElapsed = try container.decodeIfPresent(TimeInterval.self, forKey: .accumulatedElapsed) ?? 0
+        lastStartedDate = try container.decodeIfPresent(Date.self, forKey: .lastStartedDate)
     }
 }
 
@@ -115,6 +155,27 @@ public extension TimerItem {
             didNotify: false
         )
     }
+
+    /// Creates a running stopwatch with zero elapsed time.
+    /// - Parameters:
+    ///   - title: User-facing description.
+    ///   - now: The creation instant (injectable for testing).
+    static func stopwatch(
+        title: String,
+        now: Date = Date()
+    ) -> TimerItem {
+        TimerItem(
+            kind: .stopwatch,
+            title: title,
+            createdAt: now,
+            fireDate: now,
+            configuredDuration: nil,
+            state: .running,
+            didNotify: false,
+            accumulatedElapsed: 0,
+            lastStartedDate: now
+        )
+    }
 }
 
 // MARK: - Derived time
@@ -122,17 +183,34 @@ public extension TimerItem {
 public extension TimerItem {
     /// Seconds remaining until the fire date.
     ///
-    /// Returns `0` for finished items. May be negative for a running item whose
-    /// fire date is in the past but has not yet been reconciled by the scheduler.
+    /// Returns `0` for finished items and stopwatches. May be negative for a
+    /// running item whose fire date is in the past but has not yet been
+    /// reconciled by the scheduler.
     /// - Parameter now: The reference instant (defaults to `Date()`).
     func remaining(at now: Date = Date()) -> TimeInterval {
-        guard state == .running else { return 0 }
+        guard state == .running, kind != .stopwatch else { return 0 }
         return fireDate.timeIntervalSince(now)
     }
 
     /// Whether a running item has reached (or passed) its fire date.
+    /// Stopwatches never fire — they always return `false`.
     /// - Parameter now: The reference instant (defaults to `Date()`).
     func hasFired(at now: Date = Date()) -> Bool {
-        state == .running && remaining(at: now) <= 0
+        guard kind != .stopwatch else { return false }
+        return state == .running && remaining(at: now) <= 0
+    }
+
+    /// Elapsed seconds for stopwatches.
+    ///
+    /// When running: `accumulatedElapsed + time since lastStartedDate`.
+    /// When paused/finished: `accumulatedElapsed`.
+    /// Returns `0` for non-stopwatch items.
+    /// - Parameter now: The reference instant (defaults to `Date()`).
+    func elapsed(at now: Date = Date()) -> TimeInterval {
+        guard kind == .stopwatch else { return 0 }
+        if state == .running, let started = lastStartedDate {
+            return accumulatedElapsed + now.timeIntervalSince(started)
+        }
+        return accumulatedElapsed
     }
 }

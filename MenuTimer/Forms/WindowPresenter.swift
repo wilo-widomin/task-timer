@@ -18,6 +18,7 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
 
     private var addTimerWindow: NSWindow?
     private var addAlarmWindow: NSWindow?
+    private var addStopwatchWindow: NSWindow?
     private var aboutWindow: NSWindow?
 
     init(store: TimerStore) {
@@ -62,6 +63,25 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
         bringToFront(window)
     }
 
+    // MARK: - Add Stopwatch
+
+    func showAddStopwatch() {
+        if let existing = addStopwatchWindow {
+            bringToFront(existing)
+            return
+        }
+        let view = AddStopwatchView(
+            onSubmit: { [weak self] title in
+                self?.store.addStopwatch(title: title)
+                self?.addStopwatchWindow?.close()
+            },
+            onCancel: { [weak self] in self?.addStopwatchWindow?.close() }
+        )
+        let window = makeWindow(title: "Add Stopwatch", root: view)
+        addStopwatchWindow = window
+        bringToFront(window)
+    }
+
     // MARK: - About
 
     func showAbout() {
@@ -103,6 +123,8 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
             addTimerWindow = nil
         } else if closing === addAlarmWindow {
             addAlarmWindow = nil
+        } else if closing === addStopwatchWindow {
+            addStopwatchWindow = nil
         } else if closing === aboutWindow {
             aboutWindow = nil
         }

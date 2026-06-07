@@ -1,6 +1,6 @@
 # Menu Timer
 
-macOS menubar app for timers & alarms.
+macOS menubar app for timers, alarms & stopwatches.
 
 ## Architecture
 
@@ -13,7 +13,9 @@ macOS menubar app for timers & alarms.
 
 ## Models
 
-TimerItem: id, kind(.timer/.alarm), title, createdAt, fireDate, configuredDuration(only timer), state(.running/.finished), didNotify
+- `TimerItem`: id, kind(.timer/.alarm/.stopwatch), title, createdAt, fireDate, configuredDuration(only timer), state(.running/.paused/.finished), didNotify, accumulatedElapsed, lastStartedDate
+- **Timers & alarms**: `fireDate` is the single source of truth. remaining = fireDate - now.
+- **Stopwatches**: elapsed is derived from `lastStartedDate` + `accumulatedElapsed`. `lastStartedDate` is set on start/resume, nil on pause. `accumulatedElapsed` captures time before the current running session. Pause freezes accumulated + clears lastStartedDate. Continue sets lastStartedDate back to now.
 
 ## Code Standards
 
@@ -29,5 +31,5 @@ TimerItem: id, kind(.timer/.alarm), title, createdAt, fireDate, configuredDurati
 - The version lives in `project.pbxproj` in 4 places (Debug + Release × app target + test target).
 - Semver: bugfix = patch (+1), new feature = minor (+1.0), breaking = major (+1.0.0).
 - Always update all 4 occurrences to the same value before committing.
-- Current version: 1.0.1.
+- Current version: 1.1.0.
 - Commits that changed code without bumping: 3f3b154, ef0542c (left at 1.0.1 — should have been 1.0.2).

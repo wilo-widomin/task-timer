@@ -15,7 +15,15 @@ final class MenuBuilderTests: XCTestCase {
     private let epoch = Date(timeIntervalSince1970: 1_700_000_000)
 
     private func noopActions(delete: @escaping (TimerItem.ID) -> Void = { _ in }) -> MenuBuilder.Actions {
-        MenuBuilder.Actions(addTimer: {}, addAlarm: {}, about: {}, quit: {}, delete: delete)
+        MenuBuilder.Actions(
+            addTimer: {},
+            addAlarm: {},
+            addStopwatch: {},
+            about: {},
+            quit: {},
+            delete: delete,
+            togglePause: { _ in }
+        )
     }
 
     func testEmptyStateShowsPlaceholder() {
@@ -23,12 +31,12 @@ final class MenuBuilderTests: XCTestCase {
         let rows = MenuBuilder().populate(menu, items: [], now: epoch, actions: noopActions())
 
         XCTAssertTrue(rows.isEmpty)
-        // Add Timer, Add Alarm, sep, placeholder, sep, About, Quit
-        XCTAssertEqual(menu.items.count, 7)
+        // Add Timer, Add Alarm, Add Stopwatch, sep, placeholder, sep, About, Quit
+        XCTAssertEqual(menu.items.count, 8)
         XCTAssertEqual(menu.items.first?.title, "Add Timer…")
         XCTAssertEqual(menu.items.last?.title, "Quit Menu Timer")
-        let placeholder = menu.items[3]
-        XCTAssertEqual(placeholder.title, "No active timers or alarms")
+        let placeholder = menu.items[4]
+        XCTAssertEqual(placeholder.title, "No active timers, alarms, or stopwatches")
         XCTAssertFalse(placeholder.isEnabled)
     }
 
@@ -41,10 +49,10 @@ final class MenuBuilderTests: XCTestCase {
         let rows = MenuBuilder().populate(menu, items: items, now: epoch, actions: noopActions())
 
         XCTAssertEqual(rows.count, 2)
-        // 3 fixed leading items + 2 rows + 3 fixed trailing items = 8
-        XCTAssertEqual(menu.items.count, 8)
-        XCTAssertNotNil(menu.items[3].view as? TimerRowView)
+        // 4 leading items (Timer, Alarm, Stopwatch, sep) + 2 rows + 3 trailing (sep, About, Quit) = 9
+        XCTAssertEqual(menu.items.count, 9)
         XCTAssertNotNil(menu.items[4].view as? TimerRowView)
+        XCTAssertNotNil(menu.items[5].view as? TimerRowView)
     }
 
     func testDeleteClosureReceivesItemID() {
@@ -69,7 +77,8 @@ final class MenuBuilderTests: XCTestCase {
         let firstCount = menu.items.count
 
         builder.populate(menu, items: [], now: epoch, actions: noopActions())
-        XCTAssertEqual(menu.items.count, 7)
-        XCTAssertEqual(firstCount, 7)
+        // 8 items in empty state
+        XCTAssertEqual(menu.items.count, 8)
+        XCTAssertEqual(firstCount, 8)
     }
 }
