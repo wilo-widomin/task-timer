@@ -121,12 +121,13 @@ struct MenuBuilder {
 
     /// Adds a disabled section label with dark chalk-blue text.
     private func appendSectionHeader(to menu: NSMenu, title: String) {
-        let item = NSMenuItem(title: "  \(title)  ", action: nil, keyEquivalent: "")
+        let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         item.isEnabled = false
-        if let label = item.view as? NSTextField {
-            label.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
-            label.textColor = NSColor(calibratedRed: 0.28, green: 0.38, blue: 0.58, alpha: 1.0)
-        }
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium),
+            .foregroundColor: NSColor(calibratedRed: 0.28, green: 0.38, blue: 0.58, alpha: 1.0),
+        ]
+        item.attributedTitle = NSAttributedString(string: "  \(title)  ", attributes: attributes)
         menu.addItem(item)
     }
 
