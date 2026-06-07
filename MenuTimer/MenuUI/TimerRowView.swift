@@ -30,6 +30,8 @@ final class TimerRowView: NSView {
     private let timeLabel = NSTextField(labelWithString: "")
     private let actionButton = NSButton()
     private let deleteButton = NSButton()
+    private let textStack = NSStackView()
+    private let rowStack = NSStackView()
 
     private var isStopwatch = false
 
@@ -69,7 +71,8 @@ final class TimerRowView: NSView {
         timeLabel.setContentHuggingPriority(.required, for: .horizontal)
         timeLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-        // Stopwatch action button (pause/continue)
+        // Stopwatch action button (pause/continue) — NOT added to any stack
+        // yet. It is inserted/removed dynamically in update(with:now:).
         actionButton.bezelStyle = .shadowlessSquare
         actionButton.isBordered = false
         actionButton.imagePosition = .imageOnly
@@ -78,7 +81,6 @@ final class TimerRowView: NSView {
         actionButton.action = #selector(actionTapped)
         actionButton.setContentHuggingPriority(.required, for: .horizontal)
         actionButton.sendAction(on: .leftMouseDown)
-        actionButton.isHidden = !isStopwatch
 
         deleteButton.bezelStyle = .shadowlessSquare
         deleteButton.isBordered = false
@@ -93,22 +95,23 @@ final class TimerRowView: NSView {
         // the glyph and tooltip while keeping the click behaviour identical.
         configureDeleteButton(for: initialState)
 
-        let textStack = NSStackView(views: [titleLabel, subtitleLabel])
         textStack.orientation = .vertical
         textStack.alignment = .leading
         textStack.spacing = 1
+        textStack.addView(titleLabel, in: .leading)
+        textStack.addView(subtitleLabel, in: .leading)
 
-        let buttonStack = NSStackView(views: [timeLabel, actionButton, deleteButton])
-        buttonStack.orientation = .horizontal
-        buttonStack.alignment = .centerY
-        buttonStack.spacing = isStopwatch ? 6 : 10
-
-        let rowStack = NSStackView(views: [textStack, buttonStack])
+        // Row stack: [textStack, timeLabel, deleteButton]
+        // For stopwatches, actionButton is inserted between timeLabel and
+        // deleteButton by update(with:now:).
         rowStack.orientation = .horizontal
         rowStack.alignment = .centerY
         rowStack.spacing = 10
         rowStack.translatesAutoresizingMaskIntoConstraints = false
         rowStack.setHuggingPriority(.defaultLow, for: .horizontal)
+        rowStack.addView(textStack, in: .leading)
+        rowStack.addView(timeLabel, in: .trailing)
+        rowStack.addView(deleteButton, in: .trailing)
         addSubview(rowStack)
 
         NSLayoutConstraint.activate([
@@ -125,11 +128,26 @@ final class TimerRowView: NSView {
     /// Refreshes the row's labels for the given item and reference time.
     /// Called both on initial build and on every tick (time label only changes).
     func update(with item: TimerItem, now: Date) {
+        let wasStopwatch = isStopwatch
         isStopwatch = item.kind == .stopwatch
+
         titleLabel.stringValue = item.title
         subtitleLabel.stringValue = Self.subtitle(for: item)
         configureDeleteButton(for: item.state)
-        actionButton.isHidden = !isStopwatch
+
+        // Insert actionButton for stopwatches, remove it for timers/alarms.
+        // This avoids the NSStackView hidden-view spacing bug where a hidden
+        // view's surrounding spacings persist, creating double gaps.
+        if isStopwatch, !wasStopwatch {
+            // Transitioning to stopwatch: insert after timeLabel.
+            let timeIndex = rowStack.arrangedSubviews.firstIndex(of: timeLabel) ?? 0
+            rowStack.insertArrangedSubview(actionButton, at: timeIndex + 1)
+            configureActionButton(for: item.state)
+        } else if !isStopwatch, wasStopwatch {
+            // Transitioning back (shouldn't happen in practice, but be safe).
+            rowStack.removeArrangedSubview(actionButton)
+            actionButton.removeFromSuperview()
+        }
 
         if item.state == .finished {
             timeLabel.stringValue = "Done"
@@ -193,7 +211,7 @@ final class TimerRowView: NSView {
     /// Ensure mouse clicks on the buttons work inside NSMenuItem.
     override func mouseDown(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
-        if actionButton.frame.contains(location) {
+        if !actionButton.isHidden, actionButton.frame.contains(location) {
             actionButton.mouseDown(with: event)
         } else if deleteButton.frame.contains(location) {
             deleteButton.mouseDown(with: event)
