@@ -81,23 +81,28 @@ struct MenuBuilder {
         let stopwatches = items.filter { $0.kind == .stopwatch }
 
         var rows: [TimerItem.ID: TimerRowView] = [:]
+        var hasPreviousSection = false
 
         if !timers.isEmpty {
+            appendSeparatorIfNeeded(to: menu, hasPrevious: &hasPreviousSection)
             appendSectionHeader(to: menu, title: "Timers")
             appendRows(to: menu, items: timers, now: now, delete: delete, togglePause: togglePause, rows: &rows)
         }
 
         if !alarms.isEmpty {
+            appendSeparatorIfNeeded(to: menu, hasPrevious: &hasPreviousSection)
             appendSectionHeader(to: menu, title: "Alarms")
             appendRows(to: menu, items: alarms, now: now, delete: delete, togglePause: togglePause, rows: &rows)
         }
 
         if !pomodoros.isEmpty {
+            appendSeparatorIfNeeded(to: menu, hasPrevious: &hasPreviousSection)
             appendSectionHeader(to: menu, title: "Pomodoros")
             appendRows(to: menu, items: pomodoros, now: now, delete: delete, togglePause: togglePause, rows: &rows)
         }
 
         if !stopwatches.isEmpty {
+            appendSeparatorIfNeeded(to: menu, hasPrevious: &hasPreviousSection)
             appendSectionHeader(to: menu, title: "Stopwatches")
             appendRows(to: menu, items: stopwatches, now: now, delete: delete, togglePause: togglePause, rows: &rows)
         }
@@ -105,14 +110,22 @@ struct MenuBuilder {
         return rows
     }
 
-    /// Adds a disabled section label, e.g. "── Timers ──".
+    /// Adds a thin separator line before a section if there's already a
+    /// previous section above it.
+    private func appendSeparatorIfNeeded(to menu: NSMenu, hasPrevious: inout Bool) {
+        if hasPrevious {
+            menu.addItem(.separator())
+        }
+        hasPrevious = true
+    }
+
+    /// Adds a disabled section label with dark chalk-blue text.
     private func appendSectionHeader(to menu: NSMenu, title: String) {
         let item = NSMenuItem(title: "  \(title)  ", action: nil, keyEquivalent: "")
         item.isEnabled = false
-        // Subtle smaller font for section headers.
         if let label = item.view as? NSTextField {
             label.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
-            label.textColor = .secondaryLabelColor
+            label.textColor = NSColor(calibratedRed: 0.28, green: 0.38, blue: 0.58, alpha: 1.0)
         }
         menu.addItem(item)
     }

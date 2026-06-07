@@ -65,8 +65,8 @@ final class MenuBuilderTests: XCTestCase {
         let rows = MenuBuilder().populate(menu, items: items, now: epoch, actions: noopActions())
 
         XCTAssertEqual(rows.count, 3)
-        // 5 leading + "  Timers  " + T + "  Alarms  " + A + "  Stopwatches  " + S + sep + About + Quit = 14
-        XCTAssertEqual(menu.items.count, 14)
+        // 5 leading + "  Timers  " + T + sep + "  Alarms  " + A + sep + "  Stopwatches  " + S + sep + About + Quit = 16
+        XCTAssertEqual(menu.items.count, 16)
         let titleIndex = menu.items.firstIndex { $0.title == "  Timers  " }
         let alarmsIndex = menu.items.firstIndex { $0.title == "  Alarms  " }
         let stopwatchIndex = menu.items.firstIndex { $0.title == "  Stopwatches  " }
