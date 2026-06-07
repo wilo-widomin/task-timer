@@ -26,7 +26,7 @@ struct EditItemView: View {
     @State private var timerRepeatCount = 4
 
     // ── Alarm fields ──
-    @State private var alarmFireDate: Date
+    @State private var alarmFireDate: Date = Date()
     @State private var alarmSnoozeEnabled = false
     @State private var alarmSnoozeMinutes = 5
     @State private var alarmSnoozeInfinite = false
@@ -96,8 +96,6 @@ struct EditItemView: View {
         _title = State(initialValue: item.title)
 
         // Pre-fill kind-specific
-        let calendar = Calendar.current
-
         switch item.kind {
         case .timer:
             let dur = item.configuredDuration ?? 0
