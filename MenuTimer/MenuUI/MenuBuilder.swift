@@ -124,8 +124,8 @@ struct MenuBuilder {
         let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         item.isEnabled = false
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium),
-            .foregroundColor: NSColor(calibratedRed: 0.28, green: 0.38, blue: 0.58, alpha: 1.0),
+            .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize + 2, weight: .medium),
+            .foregroundColor: NSColor(calibratedRed: 0.0, green: 0.2, blue: 0.549, alpha: 1.0),
         ]
         item.attributedTitle = NSAttributedString(string: "  \(title)  ", attributes: attributes)
         menu.addItem(item)
