@@ -58,6 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onAddTimer: { [weak self] in self?.windowPresenter.showAddTimer() },
             onAddAlarm: { [weak self] in self?.windowPresenter.showAddAlarm() },
             onAddStopwatch: { [weak self] in self?.windowPresenter.showAddStopwatch() },
+            onAddPomodoro: { [weak self] in self?.windowPresenter.showAddPomodoro() },
             onAbout: { [weak self] in self?.windowPresenter.showAbout() }
         )
 

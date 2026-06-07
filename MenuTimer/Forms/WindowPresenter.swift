@@ -19,6 +19,7 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
     private var addTimerWindow: NSWindow?
     private var addAlarmWindow: NSWindow?
     private var addStopwatchWindow: NSWindow?
+    private var addPomodoroWindow: NSWindow?
     private var aboutWindow: NSWindow?
 
     init(store: TimerStore) {
@@ -100,6 +101,30 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
         bringToFront(window)
     }
 
+    // MARK: - Add Pomodoro
+
+    func showAddPomodoro() {
+        if let existing = addPomodoroWindow {
+            bringToFront(existing)
+            return
+        }
+        let view = AddPomodoroView(
+            onSubmit: { [weak self] workDuration, breakDuration, cycles, title in
+                self?.store.addPomodoro(
+                    title: title,
+                    workDuration: workDuration,
+                    breakDuration: breakDuration,
+                    cycles: cycles
+                )
+                self?.addPomodoroWindow?.close()
+            },
+            onCancel: { [weak self] in self?.addPomodoroWindow?.close() }
+        )
+        let window = makeWindow(title: "Add Pomodoro", root: view)
+        addPomodoroWindow = window
+        bringToFront(window)
+    }
+
     // MARK: - About
 
     func showAbout() {
@@ -143,6 +168,8 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
             addAlarmWindow = nil
         } else if closing === addStopwatchWindow {
             addStopwatchWindow = nil
+        } else if closing === addPomodoroWindow {
+            addPomodoroWindow = nil
         } else if closing === aboutWindow {
             aboutWindow = nil
         }

@@ -46,7 +46,32 @@ public struct FireScheduler: Sendable {
             guard items[index].kind != .stopwatch else { continue }
             guard items[index].hasFired(at: now), !items[index].didNotify else { continue }
 
-            if items[index].isRepeating {
+            if items[index].kind == .pomodoro {
+                // Pomodoro: alternate between work and break phases.
+                let snapshot = items[index]
+                items[index].didNotify = true
+                fired.append(snapshot)
+
+                if items[index].isBreakPhase {
+                    // Break just ended → back to work (or finish).
+                    if let cycles = items[index].remainingCycles {
+                        if cycles <= 1 {
+                            // Last work cycle completed after this break.
+                            items[index].state = .finished
+                            continue
+                        }
+                        items[index].remainingCycles = cycles - 1
+                    }
+                    items[index].isBreakPhase = false
+                    items[index].fireDate = now.addingTimeInterval(items[index].configuredDuration ?? 1500)
+                    items[index].didNotify = false
+                } else {
+                    // Work just ended → switch to break.
+                    items[index].isBreakPhase = true
+                    items[index].fireDate = now.addingTimeInterval(items[index].breakDuration)
+                    items[index].didNotify = false
+                }
+            } else if items[index].isRepeating {
                 // Repeating item: snapshot, notify, then reset or finish.
                 let snapshot = items[index]
                 items[index].didNotify = true  // prevent double-fire this tick

@@ -24,6 +24,8 @@ public enum ItemKind: String, Codable, Sendable {
     case alarm
     /// A stopwatch that counts elapsed time. Can be paused and resumed.
     case stopwatch
+    /// A pomodoro timer that alternates between work and break phases.
+    case pomodoro
 }
 
 /// The lifecycle state of a scheduled item.
@@ -75,6 +77,14 @@ public struct TimerItem: Identifiable, Codable, Equatable, Sendable {
     /// - `N`: will fire N more times (including the current one).
     public var remainingCycles: Int?
 
+    /// Duration of the break phase in seconds (pomodoro only).
+    /// Used by `.pomodoro` items to alternate between work (`configuredDuration`)
+    /// and break.
+    public var breakDuration: TimeInterval
+    /// Whether a `.pomodoro` item is currently in its break phase.
+    /// When `false` the item is in its work phase.
+    public var isBreakPhase: Bool
+
     /// Whether this item repeats after firing (non-nil interval and not finished).
     public var isRepeating: Bool {
         repeatInterval != nil && repeatInterval! > 0
@@ -106,7 +116,9 @@ public struct TimerItem: Identifiable, Codable, Equatable, Sendable {
         accumulatedElapsed: TimeInterval = 0,
         lastStartedDate: Date? = nil,
         repeatInterval: TimeInterval? = nil,
-        remainingCycles: Int? = nil
+        remainingCycles: Int? = nil,
+        breakDuration: TimeInterval = 0,
+        isBreakPhase: Bool = false
     ) {
         self.id = id
         self.kind = kind
@@ -120,6 +132,8 @@ public struct TimerItem: Identifiable, Codable, Equatable, Sendable {
         self.lastStartedDate = lastStartedDate
         self.repeatInterval = repeatInterval
         self.remainingCycles = remainingCycles
+        self.breakDuration = breakDuration
+        self.isBreakPhase = isBreakPhase
     }
 }
 
@@ -129,7 +143,7 @@ extension TimerItem {
     private enum CodingKeys: String, CodingKey {
         case id, kind, title, createdAt, fireDate, configuredDuration,
              state, didNotify, accumulatedElapsed, lastStartedDate,
-             repeatInterval, remainingCycles
+             repeatInterval, remainingCycles, breakDuration, isBreakPhase
     }
 
     public init(from decoder: Decoder) throws {
@@ -148,6 +162,9 @@ extension TimerItem {
         // Schema v3 fields: default to nil when absent.
         repeatInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .repeatInterval)
         remainingCycles = try container.decodeIfPresent(Int.self, forKey: .remainingCycles)
+        // Schema v4 fields: default to 0/false when absent.
+        breakDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .breakDuration) ?? 0
+        isBreakPhase = try container.decodeIfPresent(Bool.self, forKey: .isBreakPhase) ?? false
     }
 }
 
@@ -247,6 +264,34 @@ public extension TimerItem {
             didNotify: false,
             repeatInterval: snoozeInterval,
             remainingCycles: cycles
+        )
+    }
+
+    /// Creates a pomodoro timer that alternates between work and break.
+    /// - Parameters:
+    ///   - title: User-facing description.
+    ///   - workDuration: Work phase length in seconds.
+    ///   - breakDuration: Break phase length in seconds.
+    ///   - cycles: Number of work cycles (each = work + break). `nil` = infinite.
+    ///   - now: The creation instant (injectable for testing).
+    static func pomodoro(
+        title: String,
+        workDuration: TimeInterval,
+        breakDuration: TimeInterval,
+        cycles: Int?,
+        now: Date = Date()
+    ) -> TimerItem {
+        TimerItem(
+            kind: .pomodoro,
+            title: title,
+            createdAt: now,
+            fireDate: now.addingTimeInterval(workDuration),
+            configuredDuration: workDuration,
+            state: .running,
+            didNotify: false,
+            remainingCycles: cycles,
+            breakDuration: breakDuration,
+            isBreakPhase: false
         )
     }
 

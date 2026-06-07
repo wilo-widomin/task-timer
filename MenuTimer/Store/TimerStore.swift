@@ -152,6 +152,27 @@ public final class TimerStore: ObservableObject {
         return item
     }
 
+    /// Adds a pomodoro timer and persists.
+    @discardableResult
+    public func addPomodoro(
+        title: String,
+        workDuration: TimeInterval,
+        breakDuration: TimeInterval,
+        cycles: Int?,
+        now: Date = Date()
+    ) -> TimerItem {
+        let item = TimerItem.pomodoro(
+            title: title,
+            workDuration: workDuration,
+            breakDuration: breakDuration,
+            cycles: cycles,
+            now: now
+        )
+        items = sorted(items + [item])
+        persist()
+        return item
+    }
+
     /// Pauses a running stopwatch, capturing accumulated elapsed time.
     /// No-op if the item is not a running stopwatch.
     public func pauseStopwatch(id: TimerItem.ID, now: Date = Date()) {
@@ -230,8 +251,13 @@ public final class TimerStore: ObservableObject {
 
             // Within running timers/alarms: soonest fire date first
             if lhsGroup == 0 { return lhs.fireDate < rhs.fireDate }
-            // Within stopwatches: oldest first
-            if lhsGroup == 1 { return lhs.createdAt < rhs.createdAt }
+            // Within pomodoros: work before break, then soonest fire
+            if lhsGroup == 1 {
+                let lk = pomodoroSortKey(lhs)
+                let rk = pomodoroSortKey(rhs)
+                if lk != rk { return lk < rk }
+                return lhs.fireDate < rhs.fireDate
+            }
             // Within finished: soonest fire date first
             return lhs.fireDate < rhs.fireDate
         }
@@ -239,12 +265,20 @@ public final class TimerStore: ObservableObject {
 
     /// Sort group:
     /// 0 = running timer/alarm
-    /// 1 = stopwatch (any state: running or paused)
-    /// 2 = finished timer/alarm
+    /// 1 = pomodoro (any state)
+    /// 2 = stopwatch (any state: running or paused)
+    /// 3 = finished timer/alarm
     private func sortGroup(_ item: TimerItem) -> Int {
-        if item.kind == .stopwatch { return 1 }
-        if item.state == .finished { return 2 }
+        if item.kind == .stopwatch { return 2 }
+        if item.kind == .pomodoro { return 1 }
+        if item.state == .finished { return 3 }
         return 0
+    }
+
+    /// Within pomodoros: work phase first, then break, then finished.
+    private func pomodoroSortKey(_ item: TimerItem) -> Int {
+        if item.state == .finished { return 2 }
+        return item.isBreakPhase ? 1 : 0
     }
 
     /// Persists the current item list off the main thread. Failures are logged

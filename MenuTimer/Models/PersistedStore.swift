@@ -20,7 +20,9 @@ public struct PersistedStore: Codable, Equatable, Sendable {
     /// stopwatches.
     /// Version 3: added `repeatInterval` and `remainingCycles` fields for
     /// repeating timers and snoozing alarms.
-    public static let currentSchemaVersion = 3
+    /// Version 4: added `.pomodoro` kind, `breakDuration` and `isBreakPhase`
+    /// fields.
+    public static let currentSchemaVersion = 4
 
     public init(schemaVersion: Int = PersistedStore.currentSchemaVersion, items: [TimerItem] = []) {
         self.schemaVersion = schemaVersion

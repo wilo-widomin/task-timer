@@ -23,6 +23,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let onAddTimer: () -> Void
     private let onAddAlarm: () -> Void
     private let onAddStopwatch: () -> Void
+    private let onAddPomodoro: () -> Void
     private let onAbout: () -> Void
 
     private var visibleRows: [TimerItem.ID: TimerRowView] = [:]
@@ -40,12 +41,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         onAddTimer: @escaping () -> Void,
         onAddAlarm: @escaping () -> Void,
         onAddStopwatch: @escaping () -> Void,
+        onAddPomodoro: @escaping () -> Void,
         onAbout: @escaping () -> Void
     ) {
         self.store = store
         self.onAddTimer = onAddTimer
         self.onAddAlarm = onAddAlarm
         self.onAddStopwatch = onAddStopwatch
+        self.onAddPomodoro = onAddPomodoro
         self.onAbout = onAbout
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
@@ -84,6 +87,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             addTimer: { [weak self] in self?.onAddTimer() },
             addAlarm: { [weak self] in self?.onAddAlarm() },
             addStopwatch: { [weak self] in self?.onAddStopwatch() },
+            addPomodoro: { [weak self] in self?.onAddPomodoro() },
             about: { [weak self] in self?.onAbout() },
             quit: { NSApp.terminate(nil) },
             delete: { [weak self] id in self?.confirmDelete(id: id) },

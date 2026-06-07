@@ -197,6 +197,16 @@ final class TimerRowView: NSView {
             return "Timer\(repeatSuffix)"
         case .alarm:
             return "Alarm · \(TimeFormatting.alarmLabel(item.fireDate))\(repeatSuffix)"
+        case .pomodoro:
+            let work = item.configuredDuration ?? 1500
+            let phase = item.isBreakPhase ? "Break" : "Work"
+            let cycleInfo: String
+            if let cycles = item.remainingCycles {
+                cycleInfo = " · Cycle \(cycles)"
+            } else {
+                cycleInfo = ""
+            }
+            return "\(phase) \(TimeFormatting.durationLabel(work))\(cycleInfo)"
         case .stopwatch:
             return item.state == .paused ? "Stopwatch · Paused" : "Stopwatch"
         }

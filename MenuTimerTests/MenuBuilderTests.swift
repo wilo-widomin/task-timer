@@ -19,6 +19,7 @@ final class MenuBuilderTests: XCTestCase {
             addTimer: {},
             addAlarm: {},
             addStopwatch: {},
+            addPomodoro: {},
             about: {},
             quit: {},
             delete: delete,
@@ -31,11 +32,12 @@ final class MenuBuilderTests: XCTestCase {
         let rows = MenuBuilder().populate(menu, items: [], now: epoch, actions: noopActions())
 
         XCTAssertTrue(rows.isEmpty)
-        // Add Timer, Add Alarm, Add Stopwatch, sep, placeholder, sep, About, Quit
-        XCTAssertEqual(menu.items.count, 8)
+        // Add Timer, Add Alarm, Add Pomodoro, Add Stopwatch, sep,
+        // placeholder, sep, About, Quit = 9
+        XCTAssertEqual(menu.items.count, 9)
         XCTAssertEqual(menu.items.first?.title, "Add Timer…")
         XCTAssertEqual(menu.items.last?.title, "Quit Menu Timer")
-        let placeholder = menu.items[4]
+        let placeholder = menu.items[5]
         XCTAssertEqual(placeholder.title, "No active timers, alarms, or stopwatches")
         XCTAssertFalse(placeholder.isEnabled)
     }
@@ -46,11 +48,11 @@ final class MenuBuilderTests: XCTestCase {
         let rows = MenuBuilder().populate(menu, items: items, now: epoch, actions: noopActions())
 
         XCTAssertEqual(rows.count, 1)
-        // 4 leading + "  Timers  " header (disabled) + 1 row + sep + About + Quit
-        XCTAssertEqual(menu.items.count, 9)
-        XCTAssertEqual(menu.items[4].title, "  Timers  ")
-        XCTAssertFalse(menu.items[4].isEnabled)
-        XCTAssertNotNil(menu.items[5].view as? TimerRowView)
+        // 5 leading + "  Timers  " header (disabled) + 1 row + sep + About + Quit = 10
+        XCTAssertEqual(menu.items.count, 10)
+        XCTAssertEqual(menu.items[5].title, "  Timers  ")
+        XCTAssertFalse(menu.items[5].isEnabled)
+        XCTAssertNotNil(menu.items[6].view as? TimerRowView)
     }
 
     func testSectionsGroupedByKind() {
@@ -63,7 +65,8 @@ final class MenuBuilderTests: XCTestCase {
         let rows = MenuBuilder().populate(menu, items: items, now: epoch, actions: noopActions())
 
         XCTAssertEqual(rows.count, 3)
-        // 4 leading + "  Timers  " + T + "  Alarms  " + A + "  Stopwatches  " + S + sep + About + Quit
+        // 5 leading + "  Timers  " + T + "  Alarms  " + A + "  Stopwatches  " + S + sep + About + Quit = 14
+        XCTAssertEqual(menu.items.count, 14)
         let titleIndex = menu.items.firstIndex { $0.title == "  Timers  " }
         let alarmsIndex = menu.items.firstIndex { $0.title == "  Alarms  " }
         let stopwatchIndex = menu.items.firstIndex { $0.title == "  Stopwatches  " }
@@ -97,7 +100,7 @@ final class MenuBuilderTests: XCTestCase {
         let firstCount = menu.items.count
 
         builder.populate(menu, items: [], now: epoch, actions: noopActions())
-        XCTAssertEqual(menu.items.count, 8)
-        XCTAssertEqual(firstCount, 9)
+        XCTAssertEqual(menu.items.count, 9)
+        XCTAssertEqual(firstCount, 10)
     }
 }

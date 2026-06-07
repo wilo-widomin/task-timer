@@ -17,6 +17,7 @@ struct MenuBuilder {
         let addTimer: () -> Void
         let addAlarm: () -> Void
         let addStopwatch: () -> Void
+        let addPomodoro: () -> Void
         let about: () -> Void
         let quit: () -> Void
         let delete: (TimerItem.ID) -> Void
@@ -43,6 +44,7 @@ struct MenuBuilder {
         // ── Commands ──────────────────────────────────────────────
         menu.addItem(BlockMenuItem(title: "Add Timer…", keyEquivalent: "t", handler: actions.addTimer))
         menu.addItem(BlockMenuItem(title: "Add Alarm…", keyEquivalent: "a", handler: actions.addAlarm))
+        menu.addItem(BlockMenuItem(title: "Add Pomodoro…", keyEquivalent: "p", handler: actions.addPomodoro))
         menu.addItem(BlockMenuItem(title: "Add Stopwatch…", keyEquivalent: "s", handler: actions.addStopwatch))
         menu.addItem(.separator())
 
@@ -75,6 +77,7 @@ struct MenuBuilder {
 
         let timers = items.filter { $0.kind == .timer }
         let alarms = items.filter { $0.kind == .alarm }
+        let pomodoros = items.filter { $0.kind == .pomodoro }
         let stopwatches = items.filter { $0.kind == .stopwatch }
 
         var rows: [TimerItem.ID: TimerRowView] = [:]
@@ -87,6 +90,11 @@ struct MenuBuilder {
         if !alarms.isEmpty {
             appendSectionHeader(to: menu, title: "Alarms")
             appendRows(to: menu, items: alarms, now: now, delete: delete, togglePause: togglePause, rows: &rows)
+        }
+
+        if !pomodoros.isEmpty {
+            appendSectionHeader(to: menu, title: "Pomodoros")
+            appendRows(to: menu, items: pomodoros, now: now, delete: delete, togglePause: togglePause, rows: &rows)
         }
 
         if !stopwatches.isEmpty {
