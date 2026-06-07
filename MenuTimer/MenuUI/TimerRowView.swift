@@ -41,7 +41,6 @@ final class TimerRowView: NSView {
     /// Creates a row for the given item.
     init(item: TimerItem, now: Date = Date()) {
         self.itemID = item.id
-        self.isStopwatch = item.kind == .stopwatch
         super.init(frame: NSRect(x: 0, y: 0, width: Self.rowWidth, height: 44))
         setupSubviews(initialState: item.state)
         update(with: item, now: now)
