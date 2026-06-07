@@ -111,7 +111,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             guard let self else { return }
 
             // Finished items (checkmark) skip the confirmation dialog.
-            if item.state == .running {
+            if item.state != .finished {
                 let alert = NSAlert()
                 alert.alertStyle = .warning
                 alert.messageText = "Delete \(item.title)?"

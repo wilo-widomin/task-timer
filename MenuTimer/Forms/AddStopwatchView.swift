@@ -33,11 +33,6 @@ struct AddStopwatchView: View {
             Text("New Stopwatch")
                 .font(.headline)
 
-            Text("A stopwatch counts elapsed time from zero. You can pause and resume it from the menu.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
             VStack(alignment: .leading, spacing: 4) {
                 Text("Description")
                     .font(.subheadline)
