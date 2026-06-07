@@ -35,3 +35,13 @@ macOS menubar app for timers, alarms & stopwatches.
 - Always update all 4 occurrences to the same value before committing.
 - Current version: 1.3.2.
 - Commits that changed code without bumping: 3f3b154, ef0542c (left at 1.0.1 — should have been 1.0.2).
+
+## Auto-bump hook
+
+A `pre-commit` hook lives in `.githooks/` that **automatically bumps the patch version** when any `.swift` or `.pbxproj` file changes. Activate it:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+After that, every commit touching production code will auto-increment the patch number. You never need to remember again.
