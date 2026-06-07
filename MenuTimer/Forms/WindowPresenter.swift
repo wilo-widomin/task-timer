@@ -33,8 +33,17 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
             return
         }
         let view = AddTimerView(
-            onSubmit: { [weak self] duration, title in
-                self?.store.addTimer(title: title, duration: duration)
+            onSubmit: { [weak self] duration, title, repeatInterval, cycles in
+                if let interval = repeatInterval {
+                    self?.store.addRepeatingTimer(
+                        title: title,
+                        duration: duration,
+                        repeatInterval: interval,
+                        cycles: cycles
+                    )
+                } else {
+                    self?.store.addTimer(title: title, duration: duration)
+                }
                 self?.addTimerWindow?.close()
             },
             onCancel: { [weak self] in self?.addTimerWindow?.close() }
@@ -52,8 +61,17 @@ final class WindowPresenter: NSObject, NSWindowDelegate {
             return
         }
         let view = AddAlarmView(
-            onSubmit: { [weak self] fireDate, title in
-                self?.store.addAlarm(title: title, fireDate: fireDate)
+            onSubmit: { [weak self] fireDate, title, snoozeInterval, cycles in
+                if let interval = snoozeInterval {
+                    self?.store.addRepeatingAlarm(
+                        title: title,
+                        fireDate: fireDate,
+                        snoozeInterval: interval,
+                        cycles: cycles
+                    )
+                } else {
+                    self?.store.addAlarm(title: title, fireDate: fireDate)
+                }
                 self?.addAlarmWindow?.close()
             },
             onCancel: { [weak self] in self?.addAlarmWindow?.close() }

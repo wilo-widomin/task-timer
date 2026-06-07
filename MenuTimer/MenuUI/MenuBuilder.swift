@@ -3,7 +3,7 @@
 //  MenuTimer
 //
 //  Builds the status-item menu: fixed commands plus a dynamic section of one
-//  custom row per active item.
+//  custom row per active item, grouped by kind (Timers, Alarms, Stopwatches).
 //
 
 import AppKit
@@ -40,13 +40,16 @@ struct MenuBuilder {
         menu.removeAllItems()
         menu.autoenablesItems = false
 
+        // ── Commands ──────────────────────────────────────────────
         menu.addItem(BlockMenuItem(title: "Add Timer…", keyEquivalent: "t", handler: actions.addTimer))
         menu.addItem(BlockMenuItem(title: "Add Alarm…", keyEquivalent: "a", handler: actions.addAlarm))
         menu.addItem(BlockMenuItem(title: "Add Stopwatch…", keyEquivalent: "s", handler: actions.addStopwatch))
         menu.addItem(.separator())
 
-        let rows = appendDynamicSection(to: menu, items: items, now: now, delete: actions.delete, togglePause: actions.togglePause)
+        // ── Dynamic sections ──────────────────────────────────────
+        let rows = appendGroupedSections(to: menu, items: items, now: now, delete: actions.delete, togglePause: actions.togglePause)
 
+        // ── Footer ────────────────────────────────────────────────
         menu.addItem(.separator())
         menu.addItem(BlockMenuItem(title: "About Menu Timer", handler: actions.about))
         menu.addItem(BlockMenuItem(title: "Quit Menu Timer", keyEquivalent: "q", handler: actions.quit))
@@ -54,9 +57,9 @@ struct MenuBuilder {
         return rows
     }
 
-    // MARK: - Dynamic section
+    // MARK: - Grouped sections
 
-    private func appendDynamicSection(
+    private func appendGroupedSections(
         to menu: NSMenu,
         items: [TimerItem],
         now: Date,
@@ -70,7 +73,50 @@ struct MenuBuilder {
             return [:]
         }
 
+        let timers = items.filter { $0.kind == .timer }
+        let alarms = items.filter { $0.kind == .alarm }
+        let stopwatches = items.filter { $0.kind == .stopwatch }
+
         var rows: [TimerItem.ID: TimerRowView] = [:]
+
+        if !timers.isEmpty {
+            appendSectionHeader(to: menu, title: "Timers")
+            appendRows(to: menu, items: timers, now: now, delete: delete, togglePause: togglePause, rows: &rows)
+        }
+
+        if !alarms.isEmpty {
+            appendSectionHeader(to: menu, title: "Alarms")
+            appendRows(to: menu, items: alarms, now: now, delete: delete, togglePause: togglePause, rows: &rows)
+        }
+
+        if !stopwatches.isEmpty {
+            appendSectionHeader(to: menu, title: "Stopwatches")
+            appendRows(to: menu, items: stopwatches, now: now, delete: delete, togglePause: togglePause, rows: &rows)
+        }
+
+        return rows
+    }
+
+    /// Adds a disabled section label, e.g. "── Timers ──".
+    private func appendSectionHeader(to menu: NSMenu, title: String) {
+        let item = NSMenuItem(title: "  \(title)  ", action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        // Subtle smaller font for section headers.
+        if let label = item.view as? NSTextField {
+            label.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
+            label.textColor = .secondaryLabelColor
+        }
+        menu.addItem(item)
+    }
+
+    private func appendRows(
+        to menu: NSMenu,
+        items: [TimerItem],
+        now: Date,
+        delete: @escaping (TimerItem.ID) -> Void,
+        togglePause: @escaping (TimerItem.ID) -> Void,
+        rows: inout [TimerItem.ID: TimerRowView]
+    ) {
         for item in items {
             let rowView = TimerRowView(item: item, now: now)
             rowView.onDelete = { delete(item.id) }
@@ -84,6 +130,5 @@ struct MenuBuilder {
 
             rows[item.id] = rowView
         }
-        return rows
     }
 }

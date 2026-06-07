@@ -6,6 +6,9 @@
 //  reference time, it transitions any running item that has reached its fire
 //  date to `.finished` and flags it for notification — exactly once.
 //
+//  Repeating items (with `repeatInterval` set) are reset instead of finished:
+//  their fireDate is advanced by repeatInterval and they keep running.
+//
 //  Keeping this logic free of UI and notification dependencies makes it
 //  trivially testable and deterministic.
 //
@@ -20,10 +23,16 @@ public struct FireScheduler: Sendable {
     /// Processes all items against `now`, mutating those that have just fired.
     ///
     /// An item "newly fires" when it is `.running`, has reached its fire date,
-    /// and has not yet been notified (`didNotify == false`). Such items are
-    /// transitioned to `.finished` with `didNotify = true` and returned so the
-    /// caller can post a notification. The `didNotify` flag guarantees a given
-    /// firing is reported at most once, even across repeated ticks or relaunch.
+    /// and has not yet been notified (`didNotify == false`). Such items are:
+    ///
+    /// - **Non-repeating**: transitioned to `.finished` with `didNotify = true`.
+    /// - **Repeating** (has `repeatInterval`): fireDate advanced by
+    ///   `repeatInterval`, `remainingCycles` decremented (if finite), and
+    ///   `didNotify` reset to `false` for the next cycle. On the last cycle
+    ///   the item transitions to `.finished` like a non-repeating item.
+    ///
+    /// The `didNotify` flag guarantees a given firing is reported at most
+    /// once, even across repeated ticks or relaunch.
     ///
     /// - Parameters:
     ///   - items: The items to process, mutated in place.
@@ -36,9 +45,30 @@ public struct FireScheduler: Sendable {
             // Stopwatches don't fire — they count up indefinitely.
             guard items[index].kind != .stopwatch else { continue }
             guard items[index].hasFired(at: now), !items[index].didNotify else { continue }
-            items[index].state = .finished
-            items[index].didNotify = true
-            fired.append(items[index])
+
+            if items[index].isRepeating {
+                // Repeating item: snapshot, notify, then reset or finish.
+                let snapshot = items[index]
+                items[index].didNotify = true  // prevent double-fire this tick
+                fired.append(snapshot)
+
+                if let cycles = items[index].remainingCycles {
+                    if cycles <= 1 {
+                        // Last cycle — finish.
+                        items[index].state = .finished
+                        continue
+                    }
+                    items[index].remainingCycles = cycles - 1
+                }
+                // Infinite or more remain: reset fireDate for next cycle.
+                items[index].fireDate = now.addingTimeInterval(items[index].repeatInterval!)
+                items[index].didNotify = false
+            } else {
+                // Non-repeating: finish normally.
+                items[index].state = .finished
+                items[index].didNotify = true
+                fired.append(items[index])
+            }
         }
         return fired
     }

@@ -40,19 +40,39 @@ final class MenuBuilderTests: XCTestCase {
         XCTAssertFalse(placeholder.isEnabled)
     }
 
-    func testDynamicRowsCreatedPerItem() {
+    func testTimerSectionHeaderWhenOnlyTimers() {
+        let items = [TimerItem.timer(title: "A", duration: 60, now: epoch)]
+        let menu = NSMenu()
+        let rows = MenuBuilder().populate(menu, items: items, now: epoch, actions: noopActions())
+
+        XCTAssertEqual(rows.count, 1)
+        // 4 leading + "  Timers  " header (disabled) + 1 row + sep + About + Quit
+        XCTAssertEqual(menu.items.count, 9)
+        XCTAssertEqual(menu.items[4].title, "  Timers  ")
+        XCTAssertFalse(menu.items[4].isEnabled)
+        XCTAssertNotNil(menu.items[5].view as? TimerRowView)
+    }
+
+    func testSectionsGroupedByKind() {
         let items = [
-            TimerItem.timer(title: "A", duration: 60, now: epoch),
-            TimerItem.alarm(title: "B", fireDate: epoch.addingTimeInterval(3_600), now: epoch),
+            TimerItem.stopwatch(title: "S", now: epoch),
+            TimerItem.timer(title: "T", duration: 60, now: epoch),
+            TimerItem.alarm(title: "A", fireDate: epoch.addingTimeInterval(3_600), now: epoch),
         ]
         let menu = NSMenu()
         let rows = MenuBuilder().populate(menu, items: items, now: epoch, actions: noopActions())
 
-        XCTAssertEqual(rows.count, 2)
-        // 4 leading items (Timer, Alarm, Stopwatch, sep) + 2 rows + 3 trailing (sep, About, Quit) = 9
-        XCTAssertEqual(menu.items.count, 9)
-        XCTAssertNotNil(menu.items[4].view as? TimerRowView)
-        XCTAssertNotNil(menu.items[5].view as? TimerRowView)
+        XCTAssertEqual(rows.count, 3)
+        // 4 leading + "  Timers  " + T + "  Alarms  " + A + "  Stopwatches  " + S + sep + About + Quit
+        let titleIndex = menu.items.firstIndex { $0.title == "  Timers  " }
+        let alarmsIndex = menu.items.firstIndex { $0.title == "  Alarms  " }
+        let stopwatchIndex = menu.items.firstIndex { $0.title == "  Stopwatches  " }
+
+        XCTAssertNotNil(titleIndex)
+        XCTAssertNotNil(alarmsIndex)
+        XCTAssertNotNil(stopwatchIndex)
+        XCTAssertLessThan(titleIndex!, alarmsIndex!)
+        XCTAssertLessThan(alarmsIndex!, stopwatchIndex!)
     }
 
     func testDeleteClosureReceivesItemID() {
@@ -77,8 +97,7 @@ final class MenuBuilderTests: XCTestCase {
         let firstCount = menu.items.count
 
         builder.populate(menu, items: [], now: epoch, actions: noopActions())
-        // 8 items in empty state
         XCTAssertEqual(menu.items.count, 8)
-        XCTAssertEqual(firstCount, 8)
+        XCTAssertEqual(firstCount, 9)
     }
 }

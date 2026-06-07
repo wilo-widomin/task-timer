@@ -9,6 +9,10 @@
 //  For stopwatches, elapsed time is derived from `lastStartedDate` +
 //  `accumulatedElapsed` to survive pauses.
 //
+//  Repeating timers/alarms: when `repeatInterval` is set, the item resets its
+//  fireDate after firing and keeps running. `remainingCycles` tracks how many
+//  more times it should fire (nil = infinite).
+//
 
 import Foundation
 
@@ -60,6 +64,34 @@ public struct TimerItem: Identifiable, Codable, Equatable, Sendable {
     /// When the stopwatch was last started or resumed. `nil` when paused.
     /// Used to derive current elapsed without updating on every tick.
     public var lastStartedDate: Date?
+    /// If set, this item repeats every N seconds after firing instead of
+    /// finishing. Works for both timers and alarms (snooze behaviour).
+    /// - `nil`: no repeat (current default behaviour).
+    /// - non-nil: repeat every `repeatInterval` seconds.
+    public var repeatInterval: TimeInterval?
+    /// How many more firing cycles remain. Decremented each time the item
+    /// fires and resets. The item finishes when this reaches 0.
+    /// - `nil`: infinite repeats.
+    /// - `N`: will fire N more times (including the current one).
+    public var remainingCycles: Int?
+
+    /// Whether this item repeats after firing (non-nil interval and not finished).
+    public var isRepeating: Bool {
+        repeatInterval != nil && repeatInterval! > 0
+    }
+
+    /// Whether this item repeats infinitely.
+    public var isInfinite: Bool {
+        isRepeating && remainingCycles == nil
+    }
+
+    /// User-friendly label for the repeat configuration, e.g. "×4", "∞", "".
+    public var repeatLabel: String {
+        guard isRepeating else { return "" }
+        if remainingCycles == nil { return "∞" }
+        if let cycles = remainingCycles, cycles > 0 { return "×\(cycles)" }
+        return ""
+    }
 
     /// Designated initializer.
     public init(
@@ -72,7 +104,9 @@ public struct TimerItem: Identifiable, Codable, Equatable, Sendable {
         state: ItemState = .running,
         didNotify: Bool = false,
         accumulatedElapsed: TimeInterval = 0,
-        lastStartedDate: Date? = nil
+        lastStartedDate: Date? = nil,
+        repeatInterval: TimeInterval? = nil,
+        remainingCycles: Int? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -84,15 +118,18 @@ public struct TimerItem: Identifiable, Codable, Equatable, Sendable {
         self.didNotify = didNotify
         self.accumulatedElapsed = accumulatedElapsed
         self.lastStartedDate = lastStartedDate
+        self.repeatInterval = repeatInterval
+        self.remainingCycles = remainingCycles
     }
 }
 
-// MARK: - Codable (backward-compatible with schema v1)
+// MARK: - Codable (backward-compatible with schema v1 & v2)
 
 extension TimerItem {
     private enum CodingKeys: String, CodingKey {
         case id, kind, title, createdAt, fireDate, configuredDuration,
-             state, didNotify, accumulatedElapsed, lastStartedDate
+             state, didNotify, accumulatedElapsed, lastStartedDate,
+             repeatInterval, remainingCycles
     }
 
     public init(from decoder: Decoder) throws {
@@ -105,9 +142,12 @@ extension TimerItem {
         configuredDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .configuredDuration)
         state = try container.decode(ItemState.self, forKey: .state)
         didNotify = try container.decode(Bool.self, forKey: .didNotify)
-        // New fields in schema v2: default to 0/nil when absent (old data).
+        // Schema v2 fields: default to 0/nil when absent (old data).
         accumulatedElapsed = try container.decodeIfPresent(TimeInterval.self, forKey: .accumulatedElapsed) ?? 0
         lastStartedDate = try container.decodeIfPresent(Date.self, forKey: .lastStartedDate)
+        // Schema v3 fields: default to nil when absent.
+        repeatInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .repeatInterval)
+        remainingCycles = try container.decodeIfPresent(Int.self, forKey: .remainingCycles)
     }
 }
 
@@ -135,6 +175,33 @@ public extension TimerItem {
         )
     }
 
+    /// Creates a running repeating timer (e.g. pomodoro).
+    /// - Parameters:
+    ///   - title: User-facing description.
+    ///   - duration: Countdown length in seconds per cycle.
+    ///   - repeatInterval: Seconds between repeats (same as duration typically).
+    ///   - cycles: Total number of firings. `nil` = infinite, `>= 1`.
+    ///   - now: The creation instant (injectable for testing).
+    static func repeatingTimer(
+        title: String,
+        duration: TimeInterval,
+        repeatInterval: TimeInterval,
+        cycles: Int?,
+        now: Date = Date()
+    ) -> TimerItem {
+        TimerItem(
+            kind: .timer,
+            title: title,
+            createdAt: now,
+            fireDate: now.addingTimeInterval(duration),
+            configuredDuration: duration,
+            state: .running,
+            didNotify: false,
+            repeatInterval: repeatInterval,
+            remainingCycles: cycles
+        )
+    }
+
     /// Creates a running alarm that fires at an absolute instant.
     /// - Parameters:
     ///   - title: User-facing description.
@@ -153,6 +220,33 @@ public extension TimerItem {
             configuredDuration: nil,
             state: .running,
             didNotify: false
+        )
+    }
+
+    /// Creates a snoozing alarm that repeats every `snoozeInterval` seconds.
+    /// - Parameters:
+    ///   - title: User-facing description.
+    ///   - fireDate: First fire instant.
+    ///   - snoozeInterval: Seconds between snooze repeats.
+    ///   - cycles: Total number of firings. `nil` = infinite, `>= 1`.
+    ///   - now: The creation instant (injectable for testing).
+    static func repeatingAlarm(
+        title: String,
+        fireDate: Date,
+        snoozeInterval: TimeInterval,
+        cycles: Int?,
+        now: Date = Date()
+    ) -> TimerItem {
+        TimerItem(
+            kind: .alarm,
+            title: title,
+            createdAt: now,
+            fireDate: fireDate,
+            configuredDuration: nil,
+            state: .running,
+            didNotify: false,
+            repeatInterval: snoozeInterval,
+            remainingCycles: cycles
         )
     }
 

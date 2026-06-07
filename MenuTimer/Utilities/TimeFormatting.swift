@@ -10,6 +10,17 @@ import Foundation
 /// Stateless formatting helpers used by the menu rows.
 public enum TimeFormatting {
 
+    /// Formats a repeating item's cycle info, e.g. "×4", "∞".
+    /// Returns empty string for non-repeating items.
+    public static func repeatLabel(_ item: TimerItem) -> String {
+        guard item.isRepeating else { return "" }
+        if item.isInfinite { return "∞" }
+        if let cycles = item.remainingCycles, cycles > 0 {
+            return "×\(cycles)"
+        }
+        return ""
+    }
+
     /// Formats an elapsed duration as a compact string.
     ///
     /// - `< 1 hour`  → `"MM:SS"`  (e.g. `"04:09"`)

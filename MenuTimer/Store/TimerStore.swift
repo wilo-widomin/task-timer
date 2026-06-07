@@ -84,11 +84,59 @@ public final class TimerStore: ObservableObject {
         return item
     }
 
+    /// Adds a repeating countdown timer (e.g. pomodoro) and persists.
+    /// - Parameters:
+    ///   - title: User-facing description.
+    ///   - duration: Seconds per cycle.
+    ///   - repeatInterval: Seconds between repeats (typically same as duration).
+    ///   - cycles: Total firings (nil = infinite).
+    /// - Returns: The newly created item.
+    @discardableResult
+    public func addRepeatingTimer(
+        title: String,
+        duration: TimeInterval,
+        repeatInterval: TimeInterval,
+        cycles: Int?,
+        now: Date = Date()
+    ) -> TimerItem {
+        let item = TimerItem.repeatingTimer(
+            title: title,
+            duration: duration,
+            repeatInterval: repeatInterval,
+            cycles: cycles,
+            now: now
+        )
+        items = sorted(items + [item])
+        persist()
+        return item
+    }
+
     /// Adds an absolute-time alarm and persists.
     /// - Returns: The newly created item.
     @discardableResult
     public func addAlarm(title: String, fireDate: Date, now: Date = Date()) -> TimerItem {
         let item = TimerItem.alarm(title: title, fireDate: fireDate, now: now)
+        items = sorted(items + [item])
+        persist()
+        return item
+    }
+
+    /// Adds a repeating (snoozing) alarm and persists.
+    @discardableResult
+    public func addRepeatingAlarm(
+        title: String,
+        fireDate: Date,
+        snoozeInterval: TimeInterval,
+        cycles: Int?,
+        now: Date = Date()
+    ) -> TimerItem {
+        let item = TimerItem.repeatingAlarm(
+            title: title,
+            fireDate: fireDate,
+            snoozeInterval: snoozeInterval,
+            cycles: cycles,
+            now: now
+        )
         items = sorted(items + [item])
         persist()
         return item

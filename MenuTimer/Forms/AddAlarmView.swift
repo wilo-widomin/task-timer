@@ -2,8 +2,9 @@
 //  AddAlarmView.swift
 //  MenuTimer
 //
-//  SwiftUI form for creating an absolute-time alarm. Validates that the chosen
-//  instant is in the future and the description is non-empty.
+//  SwiftUI form for creating an absolute-time alarm. Supports snooze/repeat
+//  behaviour: after firing, the alarm resets to fire again after the snooze
+//  interval, up to a configurable number of cycles.
 //
 
 import SwiftUI
@@ -11,8 +12,9 @@ import SwiftUI
 /// Form for creating a new alarm at an absolute date/time.
 struct AddAlarmView: View {
 
-    /// Called with the absolute fire date and trimmed title.
-    let onSubmit: (Date, String) -> Void
+    /// Called with the absolute fire date, trimmed title, snooze interval
+    /// (nil = no repeat), and total cycles (nil = infinite).
+    let onSubmit: (Date, String, TimeInterval?, Int?) -> Void
     /// Called when the user cancels.
     let onCancel: () -> Void
 
@@ -23,15 +25,19 @@ struct AddAlarmView: View {
     @State private var title = ""
     @FocusState private var titleFocused: Bool
 
+    @State private var snoozeEnabled = false
+    @State private var snoozeMinutes = 5
+    @State private var snoozeInfinite = false
+    @State private var snoozeCount = 3
+
     init(
-        onSubmit: @escaping (Date, String) -> Void,
+        onSubmit: @escaping (Date, String, TimeInterval?, Int?) -> Void,
         onCancel: @escaping () -> Void,
         now: @escaping () -> Date = { Date() }
     ) {
         self.onSubmit = onSubmit
         self.onCancel = onCancel
         self.now = now
-        // Default to five minutes from now, rounded to the minute.
         _fireDate = State(initialValue: now().addingTimeInterval(300))
     }
 
@@ -78,6 +84,54 @@ struct AddAlarmView: View {
                     .foregroundStyle(.red)
             }
 
+            // ── Snooze / Repeat ──────────────────────────────
+            Toggle(isOn: $snoozeEnabled) {
+                Text("Repeat (snooze)")
+                    .font(.subheadline)
+            }
+            .toggleStyle(.switch)
+
+            if snoozeEnabled {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Every")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        HStack(spacing: 4) {
+                            TextField("min", value: $snoozeMinutes, format: .number)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 56)
+                                .multilineTextAlignment(.trailing)
+                            Stepper("", value: $snoozeMinutes, in: 1...1440)
+                                .labelsHidden()
+                            Text("min")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Cycles")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        HStack {
+                            Picker("", selection: $snoozeInfinite) {
+                                Text("\(snoozeCount) times").tag(false)
+                                Text("∞ Infinite").tag(true)
+                            }
+                            .pickerStyle(.radioGroup)
+                            .labelsHidden()
+
+                            if !snoozeInfinite {
+                                Stepper("", value: $snoozeCount, in: 1...999)
+                                    .labelsHidden()
+                            }
+                        }
+                    }
+                }
+                .padding(.leading, 20)
+            }
+
             HStack {
                 Spacer()
                 Button("Cancel", role: .cancel, action: onCancel)
@@ -88,18 +142,20 @@ struct AddAlarmView: View {
             }
         }
         .padding(20)
-        .frame(width: 340)
+        .frame(width: 360)
         .onAppear { titleFocused = true }
     }
 
     private func submitIfValid() {
         guard isValid else { return }
-        onSubmit(fireDate, trimmedTitle)
+        let snoozeSeconds: TimeInterval? = snoozeEnabled ? TimeInterval(snoozeMinutes * 60) : nil
+        let cycles: Int? = snoozeEnabled ? (snoozeInfinite ? nil : snoozeCount) : nil
+        onSubmit(fireDate, trimmedTitle, snoozeSeconds, cycles)
     }
 }
 
 #if DEBUG
 #Preview {
-    AddAlarmView(onSubmit: { _, _ in }, onCancel: {})
+    AddAlarmView(onSubmit: { _, _, _, _ in }, onCancel: {})
 }
 #endif

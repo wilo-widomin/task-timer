@@ -18,7 +18,9 @@ public struct PersistedStore: Codable, Equatable, Sendable {
     /// The schema version produced by the current build.
     /// Version 2: added `accumulatedElapsed` and `lastStartedDate` fields for
     /// stopwatches.
-    public static let currentSchemaVersion = 2
+    /// Version 3: added `repeatInterval` and `remainingCycles` fields for
+    /// repeating timers and snoozing alarms.
+    public static let currentSchemaVersion = 3
 
     public init(schemaVersion: Int = PersistedStore.currentSchemaVersion, items: [TimerItem] = []) {
         self.schemaVersion = schemaVersion

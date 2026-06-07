@@ -182,14 +182,21 @@ final class TimerRowView: NSView {
     }
 
     private static func subtitle(for item: TimerItem) -> String {
+        let repeatSuffix: String
+        if item.isRepeating {
+            repeatSuffix = " · \(TimeFormatting.repeatLabel(item))"
+        } else {
+            repeatSuffix = ""
+        }
+
         switch item.kind {
         case .timer:
             if let duration = item.configuredDuration {
-                return "Timer · \(TimeFormatting.durationLabel(duration))"
+                return "Timer · \(TimeFormatting.durationLabel(duration))\(repeatSuffix)"
             }
-            return "Timer"
+            return "Timer\(repeatSuffix)"
         case .alarm:
-            return "Alarm · \(TimeFormatting.alarmLabel(item.fireDate))"
+            return "Alarm · \(TimeFormatting.alarmLabel(item.fireDate))\(repeatSuffix)"
         case .stopwatch:
             return item.state == .paused ? "Stopwatch · Paused" : "Stopwatch"
         }
