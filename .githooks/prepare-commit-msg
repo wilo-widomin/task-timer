@@ -1,0 +1,105 @@
+#!/bin/bash
+# Auto-bump version based on conventional commit message.
+# Hook: prepare-commit-msg
+# Reads the commit message, parses the type (feat/fix/breaking),
+# and applies correct semver bump before the commit finalizes.
+#
+# Rules:
+#   feat!:/BREAKING CHANGE → major+1, minor=0, patch=0
+#   feat:/feature:        → major same, minor+1, patch=0
+#   fix:                  → major same, minor same, patch+1
+#   other (chore, docs…)  → no bump
+
+set -euo pipefail
+
+COMMIT_MSG_FILE="$1"
+COMMIT_SOURCE="${2:-}"  # message/template/merge/squash/commit
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+PROJECT_FILE="MenuTimer.xcodeproj/project.pbxproj"
+CLAUDE_FILE="CLAUDE.md"
+
+# Only run for regular commits (-m or editor), not merges/squashes
+if [ "$COMMIT_SOURCE" = "merge" ] || [ "$COMMIT_SOURCE" = "squash" ]; then
+    exit 0
+fi
+
+# Only run if production files changed in this commit
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
+HAS_PROD=$(echo "$STAGED_FILES" | grep -E "\.(swift|pbxproj)$" || true)
+if [ -z "$HAS_PROD" ] && [ ! -f "$PROJECT_FILE" ]; then
+    exit 0
+fi
+
+# ── Parse commit message → bump type ──────────────────────
+
+TYPE=""
+
+# Breaking: feat!:, fix!:, or BREAKING CHANGE in body
+if echo "$COMMIT_MSG" | grep -qiE 'BREAKING CHANGE|!:'; then
+    TYPE="major"
+elif echo "$COMMIT_MSG" | grep -qiE '^feat(\(.*\))?:'; then
+    TYPE="minor"
+elif echo "$COMMIT_MSG" | grep -qiE '^feature(\(.*\))?:'; then
+    TYPE="minor"
+elif echo "$COMMIT_MSG" | grep -qiE '^fix(\(.*\))?:'; then
+    TYPE="patch"
+fi
+
+# No recognized type → skip (chore, docs, refactor, test…)
+if [ -z "$TYPE" ]; then
+    exit 0
+fi
+
+# ── Read current version ──────────────────────────────────
+
+if [ ! -f "$PROJECT_FILE" ]; then
+    echo "⚠️  prepare-commit-msg: $PROJECT_FILE not found"
+    exit 0
+fi
+
+CURRENT=$(grep -h "MARKETING_VERSION = " "$PROJECT_FILE" 2>/dev/null | head -1 | sed 's/.*MARKETING_VERSION = //;s/;//')
+if [ -z "$CURRENT" ]; then
+    echo "⚠️  prepare-commit-msg: could not read MARKETING_VERSION"
+    exit 0
+fi
+
+MAJOR=$(echo "$CURRENT" | cut -d. -f1)
+MINOR=$(echo "$CURRENT" | cut -d. -f2)
+PATCH=$(echo "$CURRENT" | cut -d. -f3)
+
+# ── Apply semver ──────────────────────────────────────────
+
+case "$TYPE" in
+    major)
+        MAJOR=$((MAJOR + 1))
+        MINOR=0
+        PATCH=0
+        ;;
+    minor)
+        MINOR=$((MINOR + 1))
+        PATCH=0
+        ;;
+    patch)
+        PATCH=$((PATCH + 1))
+        ;;
+esac
+
+NEW="${MAJOR}.${MINOR}.${PATCH}"
+
+# ── Update files ──────────────────────────────────────────
+
+if [ "$CURRENT" = "$NEW" ]; then
+    exit 0
+fi
+
+sed -i "s/MARKETING_VERSION = $CURRENT;/MARKETING_VERSION = $NEW;/g" "$PROJECT_FILE"
+
+if [ -f "$CLAUDE_FILE" ]; then
+    sed -i "s/- Current version: $CURRENT./- Current version: $NEW./" "$CLAUDE_FILE" 2>/dev/null || true
+fi
+
+git add "$PROJECT_FILE"
+[ -f "$CLAUDE_FILE" ] && git add "$CLAUDE_FILE" 2>/dev/null || true
+
+echo "🔢 semver: $CURRENT → $NEW ($TYPE)" >&2

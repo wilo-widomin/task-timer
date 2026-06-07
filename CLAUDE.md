@@ -38,10 +38,16 @@ macOS menubar app for timers, alarms & stopwatches.
 
 ## Auto-bump hook
 
-A `pre-commit` hook lives in `.githooks/` that **automatically bumps the patch version** when any `.swift` or `.pbxproj` file changes. Activate it:
+A `prepare-commit-msg` hook lives in `.githooks/` that **automatically bumps the version** using proper semver based on your commit message:
 
+| Commit message | Bump | Ejemplo |
+|---|---|---|
+| `feat!: breaking change` | major+1, minor=0, patch=0 | 1.3.2 → 2.0.0 |
+| `feat: new feature` | minor+1, patch=0 | 1.3.2 → 1.4.0 |
+| `fix: bug fix` | patch+1 | 1.3.2 → 1.3.3 |
+| chore/docs/refactor | no bump | — |
+
+Activate it (one time):
 ```bash
 git config core.hooksPath .githooks
 ```
-
-After that, every commit touching production code will auto-increment the patch number. You never need to remember again.

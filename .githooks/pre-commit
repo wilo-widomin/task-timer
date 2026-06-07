@@ -1,57 +1,14 @@
 #!/bin/bash
-# Auto-bump MARKETING_VERSION on every commit that touches production files.
-# Called by git before each commit. If production files changed and the version
-# wasn't bumped, it automatically bumps the patch number and stages the change.
+# Pre-commit sanity check: ensures production changes are accompanied by
+# a proper commit message that prepare-commit-msg can parse.
+# Actual version bump is handled by prepare-commit-msg.
 
 set -euo pipefail
 
-PRODUCTION_GLOB="*.swift|*.pbxproj"
-PROJECT_FILE="MenuTimer.xcodeproj/project.pbxproj"
+# If production files changed, just remind about conventional commits
+CHANGED=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep -E "\.(swift|pbxproj)$" || true)
 
-# Check if any production files changed in this commit
-CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep -E "\.(swift|pbxproj)$" || true)
-
-if [ -z "$CHANGED" ]; then
-    # No production files changed — nothing to bump.
-    exit 0
+if [ -n "$CHANGED" ]; then
+    # prepare-commit-msg will handle the semver bump — nothing to do here
+    true
 fi
-
-# Read current version (any of the 4 occurrences)
-CURRENT_VERSION=$(grep -h "MARKETING_VERSION = " "$PROJECT_FILE" 2>/dev/null | head -1 | sed 's/.*MARKETING_VERSION = //;s/;//')
-
-if [ -z "$CURRENT_VERSION" ]; then
-    echo "⚠️  Could not read MARKETING_VERSION from $PROJECT_FILE"
-    exit 0
-fi
-
-# Check if this very commit already bumps the version
-STAGED_VERSION=$(git diff --cached "$PROJECT_FILE" 2>/dev/null | grep "^+.*MARKETING_VERSION" | sed 's/.*MARKETING_VERSION = //;s/;//' || true)
-
-if [ -n "$STAGED_VERSION" ] && [ "$STAGED_VERSION" != "$CURRENT_VERSION" ]; then
-    # Version was already bumped in staged changes — nothing to do.
-    exit 0
-fi
-
-# Bump patch: X.Y.Z → X.Y.(Z+1)
-MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
-MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
-PATCH=$(echo "$CURRENT_VERSION" | cut -d. -f3)
-NEW_PATCH=$((PATCH + 1))
-NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
-
-# Replace in the project file (staged version)
-sed -i "s/MARKETING_VERSION = $CURRENT_VERSION;/MARKETING_VERSION = $NEW_VERSION;/g" "$PROJECT_FILE"
-
-# Also update CLAUDE.md if it's staged or exists
-CLAUDE_FILE="CLAUDE.md"
-if [ -f "$CLAUDE_FILE" ]; then
-    sed -i "s/- Current version: $CURRENT_VERSION./- Current version: $NEW_VERSION./" "$CLAUDE_FILE" 2>/dev/null || true
-fi
-
-# Stage the version file changes
-git add "$PROJECT_FILE"
-if [ -f "$CLAUDE_FILE" ]; then
-    git add "$CLAUDE_FILE" 2>/dev/null || true
-fi
-
-echo "🔢 Auto-bumped version: $CURRENT_VERSION → $NEW_VERSION"
