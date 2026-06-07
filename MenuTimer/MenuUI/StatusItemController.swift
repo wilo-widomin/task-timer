@@ -94,8 +94,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     /// Asks the user to confirm removing an item, then removes it.
     ///
     /// A modal `NSAlert` is shown for **running** items (trash icon). Finished
-    /// items (checkmark icon) and stopwatches are removed immediately without
-    /// confirmation.
+    /// items (checkmark icon) are removed immediately without confirmation.
     private func confirmDelete(id: TimerItem.ID) {
         guard let item = store.items.first(where: { $0.id == id }) else { return }
 
@@ -111,8 +110,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
 
-            // Finished items (checkmark) and stopwatches skip confirmation.
-            if item.state == .running && item.kind != .stopwatch {
+            // Finished items (checkmark) skip the confirmation dialog.
+            if item.state == .running {
                 let alert = NSAlert()
                 alert.alertStyle = .warning
                 alert.messageText = "Delete \(item.title)?"
