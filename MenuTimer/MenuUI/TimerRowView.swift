@@ -258,21 +258,33 @@ final class TimerRowView: NSView {
 
     /// Ensure mouse clicks on the buttons work inside NSMenuItem.
     /// Clicks on the title label trigger edit instead.
+    ///
+    /// NOTE: We call the closures directly rather than forwarding the event to
+    /// subviews (e.g. `deleteButton.mouseDown(with: event)`), because doing so
+    /// triggers AppKit's NSControl/NSTracking machinery which can re-route the
+    /// event back to this view via `forwardMethod`, creating infinite recursion.
+    /// This was the root cause of a crash (EXC_BAD_ACCESS / stack overflow) when
+    /// deleting a timer while the context menu tracking session was active.
     override func mouseDown(with event: NSEvent) {
-        let location = convert(event.locationInWindow, from: nil)
-
-        // Clic en el título → editar item
-        if titleLabel.frame.contains(location) {
+        // Convert to each subview's own coordinate space for proper hit testing.
+        let titlePoint = titleLabel.convert(event.locationInWindow, from: nil)
+        if titleLabel.bounds.contains(titlePoint) {
             onEdit?()
             return
         }
 
-        if !actionButton.isHidden, actionButton.frame.contains(location) {
-            actionButton.mouseDown(with: event)
-        } else if deleteButton.frame.contains(location) {
-            deleteButton.mouseDown(with: event)
-        } else {
-            super.mouseDown(with: event)
+        let actionPoint = actionButton.convert(event.locationInWindow, from: nil)
+        if !actionButton.isHidden, actionButton.bounds.contains(actionPoint) {
+            onTogglePause?()
+            return
         }
+
+        let deletePoint = deleteButton.convert(event.locationInWindow, from: nil)
+        if deleteButton.bounds.contains(deletePoint) {
+            onDelete?()
+            return
+        }
+
+        super.mouseDown(with: event)
     }
 }
