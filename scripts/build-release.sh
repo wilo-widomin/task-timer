@@ -24,13 +24,18 @@ PROJECT="$REPO_ROOT/MenuTimer.xcodeproj"
 SCHEME="MenuTimer"
 CONFIG="Release"
 
-# Team ID e identidad de firma. Si cambia de cuenta, sobrescribe con las
-# variables de entorno DEVELOPMENT_TEAM / CODE_SIGN_IDENTITY.
+# Team ID e identidad de firma. Deben venir obligatoriamente de variables de
+# entorno; NO se hardcodean para no exponer la cuenta de firma en el repo.
 # OJO: xcodebuild traduce el nombre "Apple Development" a "Mac Development" y
 # no lo encuentra. Hay que pasar el hash SHA-1 exacto del cert del llavero
 # (security find-identity -v -p codesigning).
-DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-REDACTED_TEAM_ID}"
-CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:-REDACTED_CERT_HASH}"
+if [[ -z "${DEVELOPMENT_TEAM:-}" || -z "${CODE_SIGN_IDENTITY:-}" ]]; then
+    echo "ERROR: faltan DEVELOPMENT_TEAM (Team ID) y/o CODE_SIGN_IDENTITY (hash SHA-1 del cert)." >&2
+    echo "       Ej.:" >&2
+    echo "         export DEVELOPMENT_TEAM=XXXXXXXXXX" >&2
+    echo "         export CODE_SIGN_IDENTITY=\$(security find-identity -v -p codesigning | head -1 | awk '{print \$2}')" >&2
+    exit 1
+fi
 
 VERSION="${1:-}"
 
