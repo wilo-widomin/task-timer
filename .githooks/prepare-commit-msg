@@ -93,10 +93,12 @@ if [ "$CURRENT" = "$NEW" ]; then
     exit 0
 fi
 
-sed -i "s/MARKETING_VERSION = $CURRENT;/MARKETING_VERSION = $NEW;/g" "$PROJECT_FILE"
+sed -i.bak "s/MARKETING_VERSION = $CURRENT;/MARKETING_VERSION = $NEW;/g" "$PROJECT_FILE"
+rm -f "$PROJECT_FILE.bak"
 
 if [ -f "$CLAUDE_FILE" ]; then
-    sed -i "s/- Current version: $CURRENT./- Current version: $NEW./" "$CLAUDE_FILE" 2>/dev/null || true
+    sed -i.bak "s/- Current version: $CURRENT./- Current version: $NEW./" "$CLAUDE_FILE" 2>/dev/null || true
+    rm -f "$CLAUDE_FILE.bak"
 fi
 
 git add "$PROJECT_FILE"
