@@ -3,9 +3,11 @@ import SwiftUI
 /// Primary view for the MenuTimer module inside Widomin's popover.
 public struct MenuTimerMainView: View {
     @ObservedObject private var store: TimerStore
+    private let presenter: WindowPresenter
 
-    public init(store: TimerStore) {
+    public init(store: TimerStore, presenter: WindowPresenter) {
         self._store = ObservedObject(wrappedValue: store)
+        self.presenter = presenter
     }
 
     public var body: some View {
@@ -59,60 +61,54 @@ public struct MenuTimerMainView: View {
     }
 
     private func addTimer() {
-        presentWindow(title: "Add Timer", root: AddTimerView(
-            onSubmit: { duration, title, interval, cycles in
+        let id = "add-timer"
+        presenter.present(id: id, title: "Add Timer", root: AddTimerView(
+            onSubmit: { [store, presenter] duration, title, interval, cycles in
                 if let interval {
                     store.addRepeatingTimer(title: title, duration: duration, repeatInterval: interval, cycles: cycles, now: Date())
                 } else {
                     store.addTimer(title: title, duration: duration, now: Date())
                 }
+                presenter.close(id: id)
             },
-            onCancel: {}
+            onCancel: { [presenter] in presenter.close(id: id) }
         ))
     }
 
     private func addAlarm() {
-        presentWindow(title: "Add Alarm", root: AddAlarmView(
-            onSubmit: { date, title, snooze, cycles in
+        let id = "add-alarm"
+        presenter.present(id: id, title: "Add Alarm", root: AddAlarmView(
+            onSubmit: { [store, presenter] date, title, snooze, cycles in
                 if let snooze {
                     store.addRepeatingAlarm(title: title, fireDate: date, snoozeInterval: snooze, cycles: cycles, now: Date())
                 } else {
                     store.addAlarm(title: title, fireDate: date, now: Date())
                 }
+                presenter.close(id: id)
             },
-            onCancel: {}
+            onCancel: { [presenter] in presenter.close(id: id) }
         ))
     }
 
     private func addStopwatch() {
-        presentWindow(title: "Add Stopwatch", root: AddStopwatchView(
-            onSubmit: { title in
+        let id = "add-stopwatch"
+        presenter.present(id: id, title: "Add Stopwatch", root: AddStopwatchView(
+            onSubmit: { [store, presenter] title in
                 store.addStopwatch(title: title, now: Date())
+                presenter.close(id: id)
             },
-            onCancel: {}
+            onCancel: { [presenter] in presenter.close(id: id) }
         ))
     }
 
     private func addPomodoro() {
-        presentWindow(title: "Add Pomodoro", root: AddPomodoroView(
-            onSubmit: { work, brk, cycles, title in
+        let id = "add-pomodoro"
+        presenter.present(id: id, title: "Add Pomodoro", root: AddPomodoroView(
+            onSubmit: { [store, presenter] work, brk, cycles, title in
                 store.addPomodoro(title: title, workDuration: work, breakDuration: brk, cycles: cycles, now: Date())
+                presenter.close(id: id)
             },
-            onCancel: {}
+            onCancel: { [presenter] in presenter.close(id: id) }
         ))
-    }
-
-    private func presentWindow(title: String, root: some View) {
-        let controller = NSHostingController(rootView: root)
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 320, height: 280),
-            styleMask: [.titled, .closable, .miniaturizable],
-            backing: .buffered, defer: false
-        )
-        window.title = title
-        window.contentViewController = controller
-        window.center()
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
     }
 }
