@@ -19,23 +19,23 @@ import Foundation
 /// The kind of a scheduled item.
 public enum ItemKind: String, Codable, Sendable {
     /// A countdown timer created from a duration (`fireDate = createdAt + duration`).
-    public case timer
+    case timer
     /// An alarm created from an absolute date/time (`fireDate` is that instant).
-    public case alarm
+    case alarm
     /// A stopwatch that counts elapsed time. Can be paused and resumed.
-    public case stopwatch
+    case stopwatch
     /// A pomodoro timer that alternates between work and break phases.
-    public case pomodoro
+    case pomodoro
 }
 
 /// The lifecycle state of a scheduled item.
 public enum ItemState: String, Codable, Sendable {
     /// The item is counting down (or counting up for stopwatches).
-    public case running
+    case running
     /// The item is paused (stopwatch only).
-    public case paused
+    case paused
     /// The item has reached its fire date and is no longer counting down.
-    public case finished
+    case finished
 }
 
 /// A single timer, alarm, or stopwatch tracked by the app.
@@ -43,60 +43,60 @@ public enum ItemState: String, Codable, Sendable {
 /// Instances are value types and `Codable`, forming the unit of persistence.
 public struct TimerItem: Identifiable, Codable, Equatable, Sendable {
     /// Stable unique identity, also used as the notification request identifier.
-    public let id: UUID
+    let id: UUID
     /// Whether this is a countdown timer, absolute alarm, or stopwatch.
-    public let kind: ItemKind
+    let kind: ItemKind
     /// User-facing description shown in the menu and notification.
-    public var title: String
+    var title: String
     /// When the item was created.
-    public let createdAt: Date
+    let createdAt: Date
     /// The absolute instant at which the item fires. Single source of truth for
     /// timers and alarms. Not used for stopwatches.
-    public var fireDate: Date
+    var fireDate: Date
     /// Original configured duration in seconds. Present only for `.timer` items.
-    public var configuredDuration: TimeInterval?
+    var configuredDuration: TimeInterval?
     /// Current lifecycle state.
-    public var state: ItemState
+    var state: ItemState
     /// Whether a user notification has already been posted for this firing.
     /// Guarantees notifications are delivered exactly once (idempotency).
-    public var didNotify: Bool
+    var didNotify: Bool
     /// Accumulated elapsed seconds across pause/resume cycles (stopwatch only).
     /// Set when pausing: `accumulatedElapsed += now - lastStartedDate`.
-    public var accumulatedElapsed: TimeInterval
+    var accumulatedElapsed: TimeInterval
     /// When the stopwatch was last started or resumed. `nil` when paused.
     /// Used to derive current elapsed without updating on every tick.
-    public var lastStartedDate: Date?
+    var lastStartedDate: Date?
     /// If set, this item repeats every N seconds after firing instead of
     /// finishing. Works for both timers and alarms (snooze behaviour).
     /// - `nil`: no repeat (current default behaviour).
     /// - non-nil: repeat every `repeatInterval` seconds.
-    public var repeatInterval: TimeInterval?
+    var repeatInterval: TimeInterval?
     /// How many more firing cycles remain. Decremented each time the item
     /// fires and resets. The item finishes when this reaches 0.
     /// - `nil`: infinite repeats.
     /// - `N`: will fire N more times (including the current one).
-    public var remainingCycles: Int?
+    var remainingCycles: Int?
 
     /// Duration of the break phase in seconds (pomodoro only).
     /// Used by `.pomodoro` items to alternate between work (`configuredDuration`)
     /// and break.
-    public var breakDuration: TimeInterval
+    var breakDuration: TimeInterval
     /// Whether a `.pomodoro` item is currently in its break phase.
     /// When `false` the item is in its work phase.
-    public var isBreakPhase: Bool
+    var isBreakPhase: Bool
 
     /// Whether this item repeats after firing (non-nil interval and not finished).
-    public var isRepeating: Bool {
+    var isRepeating: Bool {
         repeatInterval != nil && repeatInterval! > 0
     }
 
     /// Whether this item repeats infinitely.
-    public var isInfinite: Bool {
+    var isInfinite: Bool {
         isRepeating && remainingCycles == nil
     }
 
     /// User-friendly label for the repeat configuration, e.g. "×4", "∞", "".
-    public var repeatLabel: String {
+    var repeatLabel: String {
         guard isRepeating else { return "" }
         if remainingCycles == nil { return "∞" }
         if let cycles = remainingCycles, cycles > 0 { return "×\(cycles)" }
@@ -141,7 +141,7 @@ public struct TimerItem: Identifiable, Codable, Equatable, Sendable {
 
 extension TimerItem {
     private enum CodingKeys: String, CodingKey {
-        public case id, kind, title, createdAt, fireDate, configuredDuration,
+        case id, kind, title, createdAt, fireDate, configuredDuration,
              state, didNotify, accumulatedElapsed, lastStartedDate,
              repeatInterval, remainingCycles, breakDuration, isBreakPhase
     }

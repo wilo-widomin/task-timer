@@ -13,9 +13,9 @@ import Foundation
 /// fake backend.
 public protocol PersistenceService: Sendable {
     /// Loads the store from disk, returning `.empty` if absent or corrupt.
-    public func load() async -> PersistedStore
+    func load() async -> PersistedStore
     /// Atomically writes the store to disk.
-    public func save(_ store: PersistedStore) async throws
+    func save(_ store: PersistedStore) async throws
 }
 
 /// JSON-file-backed implementation of `PersistenceService`.
@@ -42,7 +42,7 @@ public actor JSONPersistenceService: PersistenceService {
     ///
     /// Returns `PersistedStore.empty` when the file does not exist or cannot be
     /// decoded (corruption). This is intentional: the app should always launch.
-    public func load() async -> PersistedStore {
+    func load() async -> PersistedStore {
         loadSynchronously()
     }
 
@@ -63,7 +63,7 @@ public actor JSONPersistenceService: PersistenceService {
 
     /// Atomically writes the store to disk, creating the support directory if
     /// needed.
-    public func save(_ store: PersistedStore) async throws {
+    func save(_ store: PersistedStore) async throws {
         try locations.ensureSupportDirectoryExists(fileManager: fileManager)
         let data = try Self.makeEncoder().encode(store)
         try data.write(to: locations.storeFile, options: [.atomic])
