@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXContainerItemProxy section */
@@ -34,8 +34,8 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		1A0000000000000000000008 /* MenuTimer */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (1A000000000000000000001B /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); path = MenuTimer; sourceTree = "<group>"; };
-		1A0000000000000000000009 /* MenuTimerTests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = MenuTimerTests; sourceTree = "<group>"; };
+		1A0000000000000000000008 /* MenuTimer */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (1A000000000000000000001B /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = MenuTimer; sourceTree = "<group>"; };
+		1A0000000000000000000009 /* MenuTimerTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = MenuTimerTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -147,6 +147,9 @@
 			);
 			mainGroup = 1A0000000000000000000002;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				3F3E30E73017B7970028BC1D /* XCLocalSwiftPackageReference "../menu-timer" */,
+			);
 			productRefGroup = 1A0000000000000000000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -389,6 +392,13 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		3F3E30E73017B7970028BC1D /* XCLocalSwiftPackageReference "../menu-timer" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../menu-timer";
+		};
+/* End XCLocalSwiftPackageReference section */
 	};
 	rootObject = 1A0000000000000000000001 /* Project object */;
 }
