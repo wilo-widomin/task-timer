@@ -148,8 +148,8 @@ public struct AddAlarmView: View {
 
     private func submitIfValid() {
         guard isValid else { return }
-        public let snoozeSeconds: TimeInterval? = snoozeEnabled ? TimeInterval(snoozeMinutes * 60) : nil
-        public let cycles: Int? = snoozeEnabled ? (snoozeInfinite ? nil : snoozeCount) : nil
+        let snoozeSeconds: TimeInterval? = snoozeEnabled ? TimeInterval(snoozeMinutes * 60) : nil
+        let cycles: Int? = snoozeEnabled ? (snoozeInfinite ? nil : snoozeCount) : nil
         onSubmit(fireDate, trimmedTitle, snoozeSeconds, cycles)
     }
 }

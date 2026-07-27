@@ -40,7 +40,7 @@ public struct FireScheduler: Sendable {
     /// - Returns: The items that newly fired during this call (may be empty).
     @discardableResult
     public func process(items: inout [TimerItem], now: Date) -> [TimerItem] {
-        public var fired: [TimerItem] = []
+        var fired: [TimerItem] = []
         for index in items.indices {
             // Stopwatches don't fire — they count up indefinitely.
             guard items[index].kind != .stopwatch else { continue }
@@ -48,7 +48,7 @@ public struct FireScheduler: Sendable {
 
             if items[index].kind == .pomodoro {
                 // Pomodoro: alternate between work and break phases.
-                public let snapshot = items[index]
+                let snapshot = items[index]
                 items[index].didNotify = true
                 fired.append(snapshot)
 
@@ -73,7 +73,7 @@ public struct FireScheduler: Sendable {
                 }
             } else if items[index].isRepeating {
                 // Repeating item: snapshot, notify, then reset or finish.
-                public let snapshot = items[index]
+                let snapshot = items[index]
                 items[index].didNotify = true  // prevent double-fire this tick
                 fired.append(snapshot)
 

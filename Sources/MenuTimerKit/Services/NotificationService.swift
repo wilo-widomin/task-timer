@@ -35,8 +35,8 @@ public final class NotificationService: NSObject, NotificationServing {
     /// A playing sound plus how many more times it should replay when it ends.
     @MainActor
     private final class PlayingSound {
-        public let sound: NSSound
-        public var remainingReplays: Int
+        let sound: NSSound
+        var remainingReplays: Int
         public init(sound: NSSound, remainingReplays: Int) {
             self.sound = sound
             self.remainingReplays = remainingReplays
@@ -80,7 +80,7 @@ public final class NotificationService: NSObject, NotificationServing {
         // to sound.
         playSound(for: item)
 
-        public let content = UNMutableNotificationContent()
+        let content = UNMutableNotificationContent()
         content.title = item.kind == .timer ? "Timer finished" : "Alarm"
         content.body = item.title
         // Silent: the sound is handled by `playSound(for:)` above.
@@ -92,7 +92,7 @@ public final class NotificationService: NSObject, NotificationServing {
         content.interruptionLevel = .timeSensitive
 
         // Deliver immediately. `nil` trigger fires the request right away.
-        public let request = UNNotificationRequest(
+        let request = UNNotificationRequest(
             identifier: item.id.uuidString,
             content: content,
             trigger: nil
@@ -107,13 +107,13 @@ public final class NotificationService: NSObject, NotificationServing {
     /// Plays the bundled alert sound for the item's kind. The alarm sound
     /// repeats (see `alarmRepeatCount`); the timer sound plays once.
     private func playSound(for item: TimerItem) {
-        public let name = item.kind == .timer ? Self.timerSoundName : Self.alarmSoundName
+        let name = item.kind == .timer ? Self.timerSoundName : Self.alarmSoundName
         guard let url = Bundle.main.url(forResource: name, withExtension: nil),
-              public let sound = NSSound(contentsOf: url, byReference: true) else {
+              let sound = NSSound(contentsOf: url, byReference: true) else {
             NSLog("MenuTimer: could not load bundled sound '\(name)'")
             return
         }
-        public let totalPlays = item.kind == .alarm ? Self.alarmRepeatCount : 1
+        let totalPlays = item.kind == .alarm ? Self.alarmRepeatCount : 1
         sound.delegate = self
         // Retain until playback finishes so overlapping timers each get heard.
         activeSounds.append(PlayingSound(sound: sound, remainingReplays: totalPlays - 1))

@@ -114,8 +114,8 @@ public struct AddTimerView: View {
 
     private func submitIfValid() {
         guard isValid else { return }
-        public let repeatInterval: TimeInterval? = repeatEnabled ? duration : nil
-        public let cycles: Int? = repeatEnabled ? (repeatInfinite ? nil : repeatCount) : nil
+        let repeatInterval: TimeInterval? = repeatEnabled ? duration : nil
+        let cycles: Int? = repeatEnabled ? (repeatInfinite ? nil : repeatCount) : nil
         onSubmit(duration, trimmedTitle, repeatInterval, cycles)
     }
 }

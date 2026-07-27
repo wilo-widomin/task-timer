@@ -33,7 +33,7 @@ public struct FileLocations: Sendable {
     ///   - fileManager: The file manager used to resolve directories.
     ///   - folderName: The app subfolder name (default `"MenuTimer"`).
     public init(fileManager: FileManager = .default, folderName: String = "MenuTimer") {
-        public let base = (try? fileManager.url(
+        let base = (try? fileManager.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,
             appropriateFor: nil,
@@ -45,7 +45,7 @@ public struct FileLocations: Sendable {
     /// Ensures the support directory exists, creating it if necessary.
     /// - Parameter fileManager: The file manager used to create the directory.
     public func ensureSupportDirectoryExists(fileManager: FileManager = .default) throws {
-        public var isDirectory: ObjCBool = false
+        var isDirectory: ObjCBool = false
         if fileManager.fileExists(atPath: supportDirectory.path, isDirectory: &isDirectory) {
             if isDirectory.boolValue { return }
         }

@@ -29,12 +29,12 @@ public enum TimeFormatting {
     ///
     /// - Parameter elapsed: Seconds elapsed.
     public static func elapsed(_ elapsed: TimeInterval) -> String {
-        public let clamped = max(0, elapsed)
-        public let total = Int(clamped)
-        public let days = total / 86_400
-        public let hours = (total % 86_400) / 3_600
-        public let minutes = (total % 3_600) / 60
-        public let seconds = total % 60
+        let clamped = max(0, elapsed)
+        let total = Int(clamped)
+        let days = total / 86_400
+        let hours = (total % 86_400) / 3_600
+        let minutes = (total % 3_600) / 60
+        let seconds = total % 60
 
         if days > 0 {
             return String(format: "%d:%d:%02d:%02d", days, hours, minutes, seconds)
@@ -53,11 +53,11 @@ public enum TimeFormatting {
     ///
     /// - Parameter remaining: Seconds remaining.
     public static func countdown(_ remaining: TimeInterval) -> String {
-        public let clamped = max(0, remaining)
-        public let total = Int(clamped.rounded(.up))
-        public let hours = total / 3_600
-        public let minutes = (total % 3_600) / 60
-        public let seconds = total % 60
+        let clamped = max(0, remaining)
+        let total = Int(clamped.rounded(.up))
+        let hours = total / 3_600
+        let minutes = (total % 3_600) / 60
+        let seconds = total % 60
 
         if hours > 0 {
             return String(format: "%d:%02d:%02d", hours, minutes, seconds)
@@ -68,12 +68,12 @@ public enum TimeFormatting {
     /// Formats a configured timer duration as a human label, e.g. `"25 min"`,
     /// `"1 h 30 min"`, `"45 s"`.
     public static func durationLabel(_ duration: TimeInterval) -> String {
-        public let total = Int(duration.rounded())
-        public let hours = total / 3_600
-        public let minutes = (total % 3_600) / 60
-        public let seconds = total % 60
+        let total = Int(duration.rounded())
+        let hours = total / 3_600
+        let minutes = (total % 3_600) / 60
+        let seconds = total % 60
 
-        public var parts: [String] = []
+        var parts: [String] = []
         if hours > 0 { parts.append("\(hours) h") }
         if minutes > 0 { parts.append("\(minutes) min") }
         if seconds > 0 && hours == 0 { parts.append("\(seconds) s") }
@@ -83,11 +83,11 @@ public enum TimeFormatting {
     /// Short absolute time for alarms, e.g. `"14:30"` or `"Tomorrow 09:00"`.
     /// Uses the user's locale and 12/24-hour preference.
     public static func alarmLabel(_ fireDate: Date, now: Date = Date(), calendar: Calendar = .current) -> String {
-        public let timeFormatter = DateFormatter()
+        let timeFormatter = DateFormatter()
         timeFormatter.locale = .autoupdatingCurrent
         timeFormatter.timeStyle = .short
         timeFormatter.dateStyle = .none
-        public let time = timeFormatter.string(from: fireDate)
+        let time = timeFormatter.string(from: fireDate)
 
         if calendar.isDate(fireDate, inSameDayAs: now) {
             return time
@@ -97,7 +97,7 @@ public enum TimeFormatting {
             return "Tomorrow \(time)"
         }
 
-        public let dateFormatter = DateFormatter()
+        let dateFormatter = DateFormatter()
         dateFormatter.locale = .autoupdatingCurrent
         dateFormatter.dateStyle = .short
         dateFormatter.timeStyle = .short

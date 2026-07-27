@@ -65,21 +65,21 @@ public actor JSONPersistenceService: PersistenceService {
     /// needed.
     public func save(_ store: PersistedStore) async throws {
         try locations.ensureSupportDirectoryExists(fileManager: fileManager)
-        public let data = try Self.makeEncoder().encode(store)
+        let data = try Self.makeEncoder().encode(store)
         try data.write(to: locations.storeFile, options: [.atomic])
     }
 
     // MARK: - Coders
 
     private static func makeEncoder() -> JSONEncoder {
-        public let encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         return encoder
     }
 
     private static func makeDecoder() -> JSONDecoder {
-        public let decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return decoder
     }

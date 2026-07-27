@@ -58,7 +58,7 @@ public final class TimerStore: ObservableObject {
     /// (if not already notified) reported. Call once at launch.
     /// - Parameter now: Reference time, injectable for testing.
     public func load(now: Date = Date()) async {
-        public let store = await persistence.load()
+        let store = await persistence.load()
         items = sorted(store.items)
         reconcile(now: now)
     }
@@ -78,7 +78,7 @@ public final class TimerStore: ObservableObject {
     /// - Returns: The newly created item.
     @discardableResult
     public func addTimer(title: String, duration: TimeInterval, now: Date = Date()) -> TimerItem {
-        public let item = TimerItem.timer(title: title, duration: duration, now: now)
+        let item = TimerItem.timer(title: title, duration: duration, now: now)
         items = sorted(items + [item])
         persist()
         return item
@@ -99,7 +99,7 @@ public final class TimerStore: ObservableObject {
         cycles: Int?,
         now: Date = Date()
     ) -> TimerItem {
-        public let item = TimerItem.repeatingTimer(
+        let item = TimerItem.repeatingTimer(
             title: title,
             duration: duration,
             repeatInterval: repeatInterval,
@@ -115,7 +115,7 @@ public final class TimerStore: ObservableObject {
     /// - Returns: The newly created item.
     @discardableResult
     public func addAlarm(title: String, fireDate: Date, now: Date = Date()) -> TimerItem {
-        public let item = TimerItem.alarm(title: title, fireDate: fireDate, now: now)
+        let item = TimerItem.alarm(title: title, fireDate: fireDate, now: now)
         items = sorted(items + [item])
         persist()
         return item
@@ -130,7 +130,7 @@ public final class TimerStore: ObservableObject {
         cycles: Int?,
         now: Date = Date()
     ) -> TimerItem {
-        public let item = TimerItem.repeatingAlarm(
+        let item = TimerItem.repeatingAlarm(
             title: title,
             fireDate: fireDate,
             snoozeInterval: snoozeInterval,
@@ -146,7 +146,7 @@ public final class TimerStore: ObservableObject {
     /// - Returns: The newly created item.
     @discardableResult
     public func addStopwatch(title: String, now: Date = Date()) -> TimerItem {
-        public let item = TimerItem.stopwatch(title: title, now: now)
+        let item = TimerItem.stopwatch(title: title, now: now)
         items = sorted(items + [item])
         persist()
         return item
@@ -161,7 +161,7 @@ public final class TimerStore: ObservableObject {
         cycles: Int?,
         now: Date = Date()
     ) -> TimerItem {
-        public let item = TimerItem.pomodoro(
+        let item = TimerItem.pomodoro(
             title: title,
             workDuration: workDuration,
             breakDuration: breakDuration,
@@ -179,7 +179,7 @@ public final class TimerStore: ObservableObject {
         guard let index = items.firstIndex(where: { $0.id == id }),
               items[index].kind == .stopwatch,
               items[index].state == .running,
-              public let started = items[index].lastStartedDate else { return }
+              let started = items[index].lastStartedDate else { return }
 
         items[index].accumulatedElapsed += now.timeIntervalSince(started)
         items[index].lastStartedDate = nil
@@ -288,7 +288,7 @@ public final class TimerStore: ObservableObject {
 
     /// Removes the item with the given identifier and persists.
     public func remove(id: TimerItem.ID) {
-        public let before = items.count
+        let before = items.count
         items.removeAll { $0.id == id }
         guard items.count != before else { return }
         persist()
@@ -297,7 +297,7 @@ public final class TimerStore: ObservableObject {
     /// Removes all finished items and persists. Useful for a "clear finished"
     /// affordance. Stopwatches (which never finish) are unaffected.
     public func clearFinished() {
-        public let before = items.count
+        let before = items.count
         items.removeAll { $0.state == .finished }
         guard items.count != before else { return }
         persist()
@@ -313,8 +313,8 @@ public final class TimerStore: ObservableObject {
     /// countdown refresh is handled separately by the menu refresher).
     /// - Parameter now: Reference time.
     public func tick(now: Date = Date()) {
-        public var working = items
-        public let fired = scheduler.process(items: &working, now: now)
+        var working = items
+        let fired = scheduler.process(items: &working, now: now)
         guard !fired.isEmpty else { return }
 
         items = sorted(working)
@@ -332,16 +332,16 @@ public final class TimerStore: ObservableObject {
     private func sorted(_ items: [TimerItem]) -> [TimerItem] {
         items.sorted { lhs, rhs in
             // Group: running timers/alarms, then stopwatches, then finished
-            public let lhsGroup = sortGroup(lhs)
-            public let rhsGroup = sortGroup(rhs)
+            let lhsGroup = sortGroup(lhs)
+            let rhsGroup = sortGroup(rhs)
             if lhsGroup != rhsGroup { return lhsGroup < rhsGroup }
 
             // Within running timers/alarms: soonest fire date first
             if lhsGroup == 0 { return lhs.fireDate < rhs.fireDate }
             // Within pomodoros: work before break, then soonest fire
             if lhsGroup == 1 {
-                public let lk = pomodoroSortKey(lhs)
-                public let rk = pomodoroSortKey(rhs)
+                let lk = pomodoroSortKey(lhs)
+                let rk = pomodoroSortKey(rhs)
                 if lk != rk { return lk < rk }
                 return lhs.fireDate < rhs.fireDate
             }
@@ -371,7 +371,7 @@ public final class TimerStore: ObservableObject {
     /// Persists the current item list off the main thread. Failures are logged
     /// and swallowed — a transient write error must not crash the UI.
     private func persist() {
-        public let snapshot = PersistedStore(items: items)
+        let snapshot = PersistedStore(items: items)
         Task { [persistence] in
             do {
                 try await persistence.save(snapshot)

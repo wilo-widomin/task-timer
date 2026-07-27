@@ -46,7 +46,7 @@ public final class TickEngine {
 
         handler(Date())
 
-        public let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             // Timer callbacks are delivered on the main run loop; hop back onto
             // the main actor to satisfy isolation.
             MainActor.assumeIsolated {

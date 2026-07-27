@@ -53,7 +53,7 @@ public struct EditItemView: View {
     // ── Validators ──
 
     private var isTimerValid: Bool {
-        public let duration = TimeInterval(timerHours * 3_600 + timerMinutes * 60)
+        let duration = TimeInterval(timerHours * 3_600 + timerMinutes * 60)
         return duration > 0 && !trimmedTitle.isEmpty
     }
 
@@ -62,7 +62,7 @@ public struct EditItemView: View {
     }
 
     private var isPomodoroValid: Bool {
-        public let work = TimeInterval(pomoWorkHours * 3_600 + pomoWorkMinutes * 60)
+        let work = TimeInterval(pomoWorkHours * 3_600 + pomoWorkMinutes * 60)
         return work > 0 && !trimmedTitle.isEmpty
     }
 
@@ -98,9 +98,9 @@ public struct EditItemView: View {
         // Pre-fill kind-specific
         switch item.kind {
         public case .timer:
-            public let dur = item.configuredDuration ?? 0
-            public let h = Int(dur) / 3_600
-            public let m = (Int(dur) % 3_600) / 60
+            let dur = item.configuredDuration ?? 0
+            let h = Int(dur) / 3_600
+            let m = (Int(dur) % 3_600) / 60
             _timerHours = State(initialValue: h)
             _timerMinutes = State(initialValue: max(m, 1))
             if let _ = item.repeatInterval {
@@ -122,9 +122,9 @@ public struct EditItemView: View {
             break // only title
 
         public case .pomodoro:
-            public let work = item.configuredDuration ?? 1500
-            public let h = Int(work) / 3_600
-            public let m = (Int(work) % 3_600) / 60
+            let work = item.configuredDuration ?? 1500
+            let h = Int(work) / 3_600
+            let m = (Int(work) % 3_600) / 60
             _pomoWorkHours = State(initialValue: h)
             _pomoWorkMinutes = State(initialValue: max(m, 1))
             _pomoBreakMinutes = State(initialValue: Int(item.breakDuration / 60))
@@ -156,7 +156,7 @@ public struct EditItemView: View {
     // ── Header ──
 
     private var header: some View {
-        public let label: String
+        let label: String
         switch kind {
         public case .timer:     label = "Edit Timer"
         public case .alarm:     label = "Edit Alarm"
@@ -351,12 +351,12 @@ public struct EditItemView: View {
     private func submit() {
         guard isValid else { return }
 
-        public let values: EditValues
+        let values: EditValues
         switch kind {
         public case .timer:
-            public let duration = TimeInterval(timerHours * 3_600 + timerMinutes * 60)
-            public let repeatInterval: TimeInterval? = timerRepeatEnabled ? duration : nil
-            public let cycles: Int? = timerRepeatEnabled ? (timerRepeatInfinite ? nil : timerRepeatCount) : nil
+            let duration = TimeInterval(timerHours * 3_600 + timerMinutes * 60)
+            let repeatInterval: TimeInterval? = timerRepeatEnabled ? duration : nil
+            let cycles: Int? = timerRepeatEnabled ? (timerRepeatInfinite ? nil : timerRepeatCount) : nil
             values = EditValues(
                 title: trimmedTitle,
                 timerDuration: duration,
@@ -365,8 +365,8 @@ public struct EditItemView: View {
             )
 
         public case .alarm:
-            public let snoozeSeconds: TimeInterval? = alarmSnoozeEnabled ? TimeInterval(alarmSnoozeMinutes * 60) : nil
-            public let cycles: Int? = alarmSnoozeEnabled ? (alarmSnoozeInfinite ? nil : alarmSnoozeCount) : nil
+            let snoozeSeconds: TimeInterval? = alarmSnoozeEnabled ? TimeInterval(alarmSnoozeMinutes * 60) : nil
+            let cycles: Int? = alarmSnoozeEnabled ? (alarmSnoozeInfinite ? nil : alarmSnoozeCount) : nil
             values = EditValues(
                 title: trimmedTitle,
                 alarmFireDate: alarmFireDate,
@@ -378,9 +378,9 @@ public struct EditItemView: View {
             values = EditValues(title: trimmedTitle)
 
         public case .pomodoro:
-            public let work = TimeInterval(pomoWorkHours * 3_600 + pomoWorkMinutes * 60)
-            public let brk = TimeInterval(pomoBreakMinutes * 60)
-            public let cycles: Int? = pomoInfinite ? nil : pomoCycleCount
+            let work = TimeInterval(pomoWorkHours * 3_600 + pomoWorkMinutes * 60)
+            let brk = TimeInterval(pomoBreakMinutes * 60)
+            let cycles: Int? = pomoInfinite ? nil : pomoCycleCount
             values = EditValues(
                 title: trimmedTitle,
                 pomoWorkDuration: work,

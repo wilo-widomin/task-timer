@@ -117,7 +117,7 @@ public struct AddPomodoroView: View {
 
     private func submitIfValid() {
         guard isValid else { return }
-        public let cycles: Int? = infinite ? nil : cycleCount
+        let cycles: Int? = infinite ? nil : cycleCount
         onSubmit(workDuration, breakDuration, cycles, trimmedTitle)
     }
 }
