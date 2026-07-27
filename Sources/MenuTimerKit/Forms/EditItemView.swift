@@ -72,10 +72,10 @@ public struct EditItemView: View {
 
     private var isValid: Bool {
         switch kind {
-        public case .timer:     isTimerValid
-        public case .alarm:     isAlarmValid
-        public case .stopwatch: isStopwatchValid
-        public case .pomodoro:  isPomodoroValid
+        case .timer:     isTimerValid
+        case .alarm:     isAlarmValid
+        case .stopwatch: isStopwatchValid
+        case .pomodoro:  isPomodoroValid
         }
     }
 
@@ -97,7 +97,7 @@ public struct EditItemView: View {
 
         // Pre-fill kind-specific
         switch item.kind {
-        public case .timer:
+        case .timer:
             let dur = item.configuredDuration ?? 0
             let h = Int(dur) / 3_600
             let m = (Int(dur) % 3_600) / 60
@@ -109,7 +109,7 @@ public struct EditItemView: View {
                 _timerRepeatCount = State(initialValue: item.remainingCycles ?? 4)
             }
 
-        public case .alarm:
+        case .alarm:
             _alarmFireDate = State(initialValue: item.fireDate)
             if let _ = item.repeatInterval {
                 _alarmSnoozeEnabled = State(initialValue: true)
@@ -118,10 +118,10 @@ public struct EditItemView: View {
                 _alarmSnoozeCount = State(initialValue: item.remainingCycles ?? 3)
             }
 
-        public case .stopwatch:
+        case .stopwatch:
             break // only title
 
-        public case .pomodoro:
+        case .pomodoro:
             let work = item.configuredDuration ?? 1500
             let h = Int(work) / 3_600
             let m = (Int(work) % 3_600) / 60
@@ -140,10 +140,10 @@ public struct EditItemView: View {
             header
 
             switch kind {
-            public case .timer:     timerBody
-            public case .alarm:     alarmBody
-            public case .stopwatch: stopwatchBody
-            public case .pomodoro:  pomodoroBody
+            case .timer:     timerBody
+            case .alarm:     alarmBody
+            case .stopwatch: stopwatchBody
+            case .pomodoro:  pomodoroBody
             }
 
             buttons
@@ -158,10 +158,10 @@ public struct EditItemView: View {
     private var header: some View {
         let label: String
         switch kind {
-        public case .timer:     label = "Edit Timer"
-        public case .alarm:     label = "Edit Alarm"
-        public case .stopwatch: label = "Edit Stopwatch"
-        public case .pomodoro:  label = "Edit Pomodoro"
+        case .timer:     label = "Edit Timer"
+        case .alarm:     label = "Edit Alarm"
+        case .stopwatch: label = "Edit Stopwatch"
+        case .pomodoro:  label = "Edit Pomodoro"
         }
         return Text(label)
             .font(.headline)
@@ -353,7 +353,7 @@ public struct EditItemView: View {
 
         let values: EditValues
         switch kind {
-        public case .timer:
+        case .timer:
             let duration = TimeInterval(timerHours * 3_600 + timerMinutes * 60)
             let repeatInterval: TimeInterval? = timerRepeatEnabled ? duration : nil
             let cycles: Int? = timerRepeatEnabled ? (timerRepeatInfinite ? nil : timerRepeatCount) : nil
@@ -364,7 +364,7 @@ public struct EditItemView: View {
                 remainingCycles: cycles
             )
 
-        public case .alarm:
+        case .alarm:
             let snoozeSeconds: TimeInterval? = alarmSnoozeEnabled ? TimeInterval(alarmSnoozeMinutes * 60) : nil
             let cycles: Int? = alarmSnoozeEnabled ? (alarmSnoozeInfinite ? nil : alarmSnoozeCount) : nil
             values = EditValues(
@@ -374,10 +374,10 @@ public struct EditItemView: View {
                 remainingCycles: cycles
             )
 
-        public case .stopwatch:
+        case .stopwatch:
             values = EditValues(title: trimmedTitle)
 
-        public case .pomodoro:
+        case .pomodoro:
             let work = TimeInterval(pomoWorkHours * 3_600 + pomoWorkMinutes * 60)
             let brk = TimeInterval(pomoBreakMinutes * 60)
             let cycles: Int? = pomoInfinite ? nil : pomoCycleCount
