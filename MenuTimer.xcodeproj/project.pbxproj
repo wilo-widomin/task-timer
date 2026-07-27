@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXContainerItemProxy section */
@@ -34,8 +34,8 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		1A0000000000000000000008 /* MenuTimer */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (1A000000000000000000001B /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = MenuTimer; sourceTree = "<group>"; };
-		1A0000000000000000000009 /* MenuTimerTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = MenuTimerTests; sourceTree = "<group>"; };
+		1A0000000000000000000008 /* MenuTimer */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (1A000000000000000000001B /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); path = MenuTimer; sourceTree = "<group>"; };
+		1A0000000000000000000009 /* MenuTimerTests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = MenuTimerTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
