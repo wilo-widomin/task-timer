@@ -43,60 +43,60 @@ public enum ItemState: String, Codable, Sendable {
 /// Instances are value types and `Codable`, forming the unit of persistence.
 public struct TimerItem: Identifiable, Codable, Equatable, Sendable {
     /// Stable unique identity, also used as the notification request identifier.
-    let id: UUID
+    public let id: UUID
     /// Whether this is a countdown timer, absolute alarm, or stopwatch.
-    let kind: ItemKind
+    public let kind: ItemKind
     /// User-facing description shown in the menu and notification.
-    var title: String
+    public var title: String
     /// When the item was created.
-    let createdAt: Date
+    public let createdAt: Date
     /// The absolute instant at which the item fires. Single source of truth for
     /// timers and alarms. Not used for stopwatches.
-    var fireDate: Date
+    public var fireDate: Date
     /// Original configured duration in seconds. Present only for `.timer` items.
-    var configuredDuration: TimeInterval?
+    public var configuredDuration: TimeInterval?
     /// Current lifecycle state.
-    var state: ItemState
+    public var state: ItemState
     /// Whether a user notification has already been posted for this firing.
     /// Guarantees notifications are delivered exactly once (idempotency).
-    var didNotify: Bool
+    public var didNotify: Bool
     /// Accumulated elapsed seconds across pause/resume cycles (stopwatch only).
     /// Set when pausing: `accumulatedElapsed += now - lastStartedDate`.
-    var accumulatedElapsed: TimeInterval
+    public var accumulatedElapsed: TimeInterval
     /// When the stopwatch was last started or resumed. `nil` when paused.
     /// Used to derive current elapsed without updating on every tick.
-    var lastStartedDate: Date?
+    public var lastStartedDate: Date?
     /// If set, this item repeats every N seconds after firing instead of
     /// finishing. Works for both timers and alarms (snooze behaviour).
     /// - `nil`: no repeat (current default behaviour).
     /// - non-nil: repeat every `repeatInterval` seconds.
-    var repeatInterval: TimeInterval?
+    public var repeatInterval: TimeInterval?
     /// How many more firing cycles remain. Decremented each time the item
     /// fires and resets. The item finishes when this reaches 0.
     /// - `nil`: infinite repeats.
     /// - `N`: will fire N more times (including the current one).
-    var remainingCycles: Int?
+    public var remainingCycles: Int?
 
     /// Duration of the break phase in seconds (pomodoro only).
     /// Used by `.pomodoro` items to alternate between work (`configuredDuration`)
     /// and break.
-    var breakDuration: TimeInterval
+    public var breakDuration: TimeInterval
     /// Whether a `.pomodoro` item is currently in its break phase.
     /// When `false` the item is in its work phase.
-    var isBreakPhase: Bool
+    public var isBreakPhase: Bool
 
     /// Whether this item repeats after firing (non-nil interval and not finished).
-    var isRepeating: Bool {
+    public var isRepeating: Bool {
         repeatInterval != nil && repeatInterval! > 0
     }
 
     /// Whether this item repeats infinitely.
-    var isInfinite: Bool {
+    public var isInfinite: Bool {
         isRepeating && remainingCycles == nil
     }
 
     /// User-friendly label for the repeat configuration, e.g. "×4", "∞", "".
-    var repeatLabel: String {
+    public var repeatLabel: String {
         guard isRepeating else { return "" }
         if remainingCycles == nil { return "∞" }
         if let cycles = remainingCycles, cycles > 0 { return "×\(cycles)" }
@@ -147,7 +147,7 @@ extension TimerItem {
     }
 
     public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
+        public let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         kind = try container.decode(ItemKind.self, forKey: .kind)
         title = try container.decode(String.self, forKey: .title)
