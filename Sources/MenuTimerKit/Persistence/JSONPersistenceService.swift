@@ -42,7 +42,7 @@ public actor JSONPersistenceService: PersistenceService {
     ///
     /// Returns `PersistedStore.empty` when the file does not exist or cannot be
     /// decoded (corruption). This is intentional: the app should always launch.
-    func load() async -> PersistedStore {
+    public func load() async -> PersistedStore {
         loadSynchronously()
     }
 
@@ -63,7 +63,7 @@ public actor JSONPersistenceService: PersistenceService {
 
     /// Atomically writes the store to disk, creating the support directory if
     /// needed.
-    func save(_ store: PersistedStore) async throws {
+    public func save(_ store: PersistedStore) async throws {
         try locations.ensureSupportDirectoryExists(fileManager: fileManager)
         let data = try Self.makeEncoder().encode(store)
         try data.write(to: locations.storeFile, options: [.atomic])

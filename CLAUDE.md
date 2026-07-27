@@ -33,7 +33,7 @@ macOS menubar app for timers, alarms & stopwatches.
 - The version lives in `project.pbxproj` in 4 places (Debug + Release × app target + test target).
 - Semver: bugfix = patch (+1), new feature = minor (+1.0), breaking = major (+1.0.0).
 - Always update all 4 occurrences to the same value before committing.
-- Current version: 1.6.2.
+- Current version: 1.6.3.
 - Commits that changed code without bumping: 3f3b154, ef0542c (left at 1.0.1 — should have been 1.0.2).
 
 ## Auto-bump hook

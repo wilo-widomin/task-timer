@@ -56,7 +56,7 @@ public final class NotificationService: NSObject, NotificationServing {
         center.delegate = self
     }
 
-    func requestAuthorization() async {
+    public func requestAuthorization() async {
         do {
             _ = try await center.requestAuthorization(options: [.alert, .sound])
         } catch {
@@ -71,7 +71,7 @@ public final class NotificationService: NSObject, NotificationServing {
     /// Bundled sound file for alarm notifications.
     private static let alarmSoundName = "alarm_sound.wav"
 
-    func postNotification(for item: TimerItem) {
+    public func postNotification(for item: TimerItem) {
         // Play the alert sound ourselves. Custom `UNNotificationSound` files are
         // unreliable on macOS (the system frequently ignores bundle sounds and
         // falls back to the default), so we drive playback directly and post a
