@@ -147,7 +147,7 @@ extension TimerItem {
     }
 
     public init(from decoder: Decoder) throws {
-        public let container = try decoder.container(keyedBy: CodingKeys.self)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         kind = try container.decode(ItemKind.self, forKey: .kind)
         title = try container.decode(String.self, forKey: .title)
