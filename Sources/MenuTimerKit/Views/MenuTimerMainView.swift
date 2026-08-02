@@ -25,7 +25,7 @@ public struct MenuTimerMainView: View {
                 Spacer()
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 4, pinnedViews: .sectionHeaders) {
+                    LazyVStack(alignment: .leading, spacing: 4) {
                         ForEach(Self.sections) { section in
                             let items = store.items.filter { $0.kind == section.kind }
                             if !items.isEmpty {
@@ -73,15 +73,15 @@ public struct MenuTimerMainView: View {
         KindSection(kind: .stopwatch, title: "Cronómetros"),
     ]
 
+    /// Plain text, no background: inside a translucent popover any material reads as
+    /// a washed-out band, especially while the window is not key.
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
             .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.accentColor)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 6)
-            .padding(.bottom, 2)
-            // Opaque so pinned headers do not show rows scrolling underneath.
-            .background(.regularMaterial)
+            .padding(.top, 8)
+            .padding(.bottom, 1)
     }
 
     private func addBtn(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
