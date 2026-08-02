@@ -25,12 +25,22 @@ public struct MenuTimerMainView: View {
                 Spacer()
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 4) {
-                        ForEach(store.items) { item in
-                            MenuTimerRow(item: item, now: Date())
+                    LazyVStack(alignment: .leading, spacing: 4, pinnedViews: .sectionHeaders) {
+                        ForEach(Self.sections) { section in
+                            let items = store.items.filter { $0.kind == section.kind }
+                            if !items.isEmpty {
+                                Section {
+                                    ForEach(items) { item in
+                                        MenuTimerRow(item: item, now: Date())
+                                    }
+                                } header: {
+                                    sectionHeader(section.title)
+                                }
+                            }
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
                 }
             }
 
@@ -46,6 +56,32 @@ public struct MenuTimerMainView: View {
             .padding(.horizontal, 8)
         }
         .frame(minWidth: 300, minHeight: 200)
+    }
+
+    /// The list is grouped by kind, in this fixed order. Empty groups are skipped,
+    /// so the order stays stable no matter what the user creates first.
+    private struct KindSection: Identifiable {
+        let kind: ItemKind
+        let title: String
+        var id: ItemKind { kind }
+    }
+
+    private static let sections: [KindSection] = [
+        KindSection(kind: .timer, title: "Temporizadores"),
+        KindSection(kind: .alarm, title: "Alarmas"),
+        KindSection(kind: .pomodoro, title: "Pomodoros"),
+        KindSection(kind: .stopwatch, title: "Cronómetros"),
+    ]
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 6)
+            .padding(.bottom, 2)
+            // Opaque so pinned headers do not show rows scrolling underneath.
+            .background(.regularMaterial)
     }
 
     private func addBtn(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
