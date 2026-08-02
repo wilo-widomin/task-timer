@@ -31,7 +31,12 @@ public struct MenuTimerMainView: View {
                             if !items.isEmpty {
                                 Section {
                                     ForEach(items) { item in
-                                        MenuTimerRow(item: item, now: Date())
+                                        MenuTimerRow(
+                                            item: item,
+                                            now: Date(),
+                                            onEdit: { edit(item) },
+                                            onDelete: { store.remove(id: item.id) }
+                                        )
                                     }
                                 } header: {
                                     sectionHeader(section.title)
@@ -135,6 +140,55 @@ public struct MenuTimerMainView: View {
             },
             onCancel: { [presenter] in presenter.close(id: id) }
         ))
+    }
+
+    private func edit(_ item: TimerItem) {
+        let id = "edit-\(item.id)"
+        presenter.present(id: id, title: "Editar", root: EditItemView(
+            item: item,
+            onSave: { [store, presenter] values in
+                applyEdit(store: store, item: item, values: values)
+                presenter.close(id: id)
+            },
+            onCancel: { [presenter] in presenter.close(id: id) }
+        ))
+    }
+
+    /// Routes the form values to the right `TimerStore` mutator. Stopwatches only
+    /// carry a title — the rest of `EditValues` does not apply to them.
+    private func applyEdit(store: TimerStore, item: TimerItem, values: EditValues) {
+        let now = Date()
+        switch item.kind {
+        case .timer:
+            store.updateTimer(
+                id: item.id,
+                title: values.title,
+                duration: values.timerDuration ?? item.configuredDuration ?? 300,
+                repeatInterval: values.repeatInterval,
+                remainingCycles: values.remainingCycles,
+                now: now
+            )
+        case .alarm:
+            store.updateAlarm(
+                id: item.id,
+                title: values.title,
+                fireDate: values.alarmFireDate ?? item.fireDate,
+                repeatInterval: values.repeatInterval,
+                remainingCycles: values.remainingCycles,
+                now: now
+            )
+        case .pomodoro:
+            store.updatePomodoro(
+                id: item.id,
+                title: values.title,
+                workDuration: values.pomoWorkDuration ?? item.configuredDuration ?? 1500,
+                breakDuration: values.pomoBreakDuration ?? item.breakDuration,
+                remainingCycles: values.remainingCycles,
+                now: now
+            )
+        case .stopwatch:
+            store.updateItemTitle(id: item.id, title: values.title)
+        }
     }
 
     private func addPomodoro() {
