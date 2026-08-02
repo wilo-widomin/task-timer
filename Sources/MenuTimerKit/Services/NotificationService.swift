@@ -108,7 +108,12 @@ public final class NotificationService: NSObject, NotificationServing {
     /// repeats (see `alarmRepeatCount`); the timer sound plays once.
     private func playSound(for item: TimerItem) {
         let name = item.kind == .timer ? Self.timerSoundName : Self.alarmSoundName
-        guard let url = Bundle.main.url(forResource: name, withExtension: nil),
+        // `Bundle.module` y no `Bundle.main`: al consumirse como paquete, el bundle
+        // principal es el de la app anfitriona, que no lleva estos sonidos. Esta
+        // línea es la única divergencia intencionada con la copia de `MenuTimer/`,
+        // donde `Bundle.module` ni siquiera existe.
+        let bundle = Bundle.module
+        guard let url = bundle.url(forResource: name, withExtension: nil),
               let sound = NSSound(contentsOf: url, byReference: true) else {
             NSLog("MenuTimer: could not load bundled sound '\(name)'")
             return

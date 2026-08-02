@@ -13,7 +13,10 @@ let package = Package(
     targets: [
         .target(
             name: "MenuTimerKit",
-            path: "Sources/MenuTimerKit"
+            path: "Sources/MenuTimerKit",
+            // Sin esto los .wav no viajan con el paquete y las alarmas suenan
+            // en la app standalone pero no en quien la consuma como módulo.
+            resources: [.process("Resources")]
         ),
     ]
 )

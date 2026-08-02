@@ -24,28 +24,33 @@ public struct MenuTimerMainView: View {
                 }
                 Spacer()
             } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 4) {
-                        ForEach(Self.sections) { section in
-                            let items = store.items.filter { $0.kind == section.kind }
-                            if !items.isEmpty {
-                                Section {
-                                    ForEach(items) { item in
-                                        MenuTimerRow(
-                                            item: item,
-                                            now: Date(),
-                                            onEdit: { edit(item) },
-                                            onDelete: { store.remove(id: item.id) }
-                                        )
+                // El listado necesita su propio reloj: `TimerStore.tick` no toca
+                // `@Published` cuando no vence nada, así que sin esto las cuentas
+                // atrás solo se refrescarían al reabrir el popover.
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 4) {
+                            ForEach(Self.sections) { section in
+                                let items = store.items.filter { $0.kind == section.kind }
+                                if !items.isEmpty {
+                                    Section {
+                                        ForEach(items) { item in
+                                            MenuTimerRow(
+                                                item: item,
+                                                now: context.date,
+                                                onEdit: { edit(item) },
+                                                onDelete: { store.remove(id: item.id) }
+                                            )
+                                        }
+                                    } header: {
+                                        sectionHeader(section.title)
                                     }
-                                } header: {
-                                    sectionHeader(section.title)
                                 }
                             }
                         }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
                 }
             }
 

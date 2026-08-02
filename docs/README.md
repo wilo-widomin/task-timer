@@ -4,6 +4,11 @@ Esta carpeta contiene la documentación del proyecto **Menu Timer**, una app
 nativa de macOS para la barra de menús (menu bar) que gestiona **temporizadores**,
 **alarmas**, **cronómetros** y **pomodoros**.
 
+> **Si vas a tocar código, empieza por [`agent-context/INDEX.md`](./agent-context/INDEX.md).**
+> Los tres documentos de abajo describen la app tal como era antes de extraer el
+> paquete `MenuTimerKit`: siguen sirviendo para entender el producto y las decisiones
+> de diseño, pero no reflejan la estructura actual del repositorio.
+
 La documentación se divide en tres documentos, cada uno con un público y
 objetivo distintos:
 
