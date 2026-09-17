@@ -1,9 +1,10 @@
 ---
 dominio: distribucion
-actualizado: 2026-08-02
+actualizado: 2026-09-17
 archivos:
   - MenuTimer.xcodeproj/project.pbxproj
   - Package.swift
+  - scripts/build-release.sh
   - .githooks/prepare-commit-msg
   - .githooks/pre-commit
 ---
@@ -22,6 +23,20 @@ es lo que consume `widomin-app`, y va por **tags de git**.
   `feat:` menor, `fix:` parche. Instalar con `git config core.hooksPath .githooks`.
 - `.githooks/pre-commit` no bumpea nada; solo comprueba que el commit toca código de
   producción.
+
+## Repartir la app standalone (DMG)
+
+`scripts/build-release.sh [versión]` hace archive, extrae la `.app`, verifica la
+firma y deja `dist/MenuTimer-<versión>.dmg`. Sin argumento usa la versión del
+proyecto.
+
+**Firma automática**: `CODE_SIGN_STYLE=Automatic` + `-allowProvisioningUpdates`.
+Xcode elige el certificado del llavero y gestiona el perfil. El Team ID va en el
+script (`DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-7NZNHD46LC}"`) y se sobreescribe por
+entorno. Es el **mismo procedimiento que `widomin-office` y `EmailNotifier`**: los
+tres repos de macOS comparten cuenta de firma y script casi idéntico.
+
+No hay notarización, así que la primera vez hay que abrir con clic derecho → Abrir.
 
 ## Publicar una versión para Widomin
 
@@ -44,5 +59,9 @@ Sin el tag, `widomin-app` no ve nada: SPM resuelve por tags, no por `main`.
   privado. La cuenta usa `516403+widomin@users.noreply.github.com`.
 - El pin de `widomin-app` es `upToNextMajor`: publicar una versión mayor deja de
   llegarle sola.
+- La firma **manual** no vale aquí: `xcodebuild` traduce el nombre «Apple
+  Development» a «Mac Development» y no lo encuentra, así que obligaba a pasar el
+  hash SHA-1 exacto del certificado. Se abandonó en `b556edd`; si alguien la
+  reintroduce, el script vuelve a fallar antes de compilar.
 - `Package.swift` no declara `resources`, así que los `.wav` no viajan con el paquete.
   Ver `notificaciones/_dominio.md`.
