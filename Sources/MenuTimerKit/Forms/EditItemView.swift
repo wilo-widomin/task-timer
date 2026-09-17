@@ -321,7 +321,7 @@ public struct EditItemView: View {
             Text("Cycles").font(.subheadline).foregroundStyle(.secondary)
             HStack {
                 Picker("", selection: infinite) {
-                    Text("\\(count.wrappedValue) times").tag(false)
+                    Text("\(count.wrappedValue) times").tag(false)
                     Text("∞ Infinite").tag(true)
                 }
                 .pickerStyle(.radioGroup)
