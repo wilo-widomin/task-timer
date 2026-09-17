@@ -1,5 +1,5 @@
 ---
-actualizado: 2026-08-02
+actualizado: 2026-09-17
 archivos:
   - Package.swift
   - MenuTimer.xcodeproj/project.pbxproj
@@ -65,6 +65,6 @@ hecho solo en `Sources/` no lo valida nadie.
 ## Trampas
 
 - `CLAUDE.md` dice «macOS 13+» y «Current version: 1.6.5»; ambas cosas están
-  desfasadas: `Package.swift` exige macOS 14 y la versión va por 1.9.x.
+  desfasadas: `Package.swift` exige macOS 14 y la versión va por 1.10.x.
 - `docs/01-funcional.md`, `02-arquitectura.md` y `03-tecnica.md` son de julio y
   describen el estado anterior a `MenuTimerKit`. Este directorio manda.
