@@ -252,11 +252,12 @@ open MenuTimer.xcodeproj   # scheme MenuTimer; ⌘R run, ⌘U tests
 
 ### Release (script `scripts/build-release.sh`)
 - Compila `Release` y empaqueta `dist/MenuTimer-<version>.dmg`.
-- **Firma manual** con el cert “Apple Development” del llavero (hay que pasar el
-  **hash SHA-1** exacto del cert, porque `xcodebuild` traduce el nombre y no lo
-  encuentra). Sobreescribible con `DEVELOPMENT_TEAM` / `CODE_SIGN_IDENTITY`.
-- **No usa sandbox** ni capabilities que requieran provisioning profile → no hace
-  falta cuenta Apple ID en Xcode ni **notarización**.
+- **Firma automática** (`CODE_SIGN_STYLE=Automatic` + `-allowProvisioningUpdates`):
+  Xcode elige el cert del llavero y gestiona el perfil, así que no hay que
+  averiguar el hash SHA-1 de ningún certificado. El Team ID va en el script como
+  valor por defecto y se sobreescribe con `DEVELOPMENT_TEAM`. Mismo procedimiento
+  que `widomin-office` y `EmailNotifier`.
+- **No usa sandbox** ni entitlements → no hace falta **notarización**.
 - Distribución: repartir a usuarios de confianza (la primera vez deben abrir con
   clic derecho → Abrir, al no estar notarizada).
 

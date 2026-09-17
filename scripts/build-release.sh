@@ -10,11 +10,13 @@
 # Requiere:
 #   - Cert "Apple Development" en el llavero.
 #
-# Firma MANUAL con el cert "Apple Development" del llavero. La app no usa
-# sandbox ni capabilities que requieran perfil de aprovisionamiento, así que
-# no hace falta cuenta de Apple ID configurada en Xcode ni notarización.
-# Apto para repartir a usuarios de confianza (la primera vez deben abrir con
-# clic derecho → Abrir, porque no está notarizada).
+# Firma AUTOMÁTICA, igual que widomin-office y EmailNotifier. Xcode elige el
+# cert del llavero y gestiona el perfil con -allowProvisioningUpdates, así que
+# no hay que averiguar el hash SHA-1 de ningún certificado.
+# Esta app no tiene entitlements, pero se firma igual que las otras para que el
+# procedimiento sea uno solo en los tres repos.
+# No hay notarización: para repartir a usuarios de confianza, la primera vez
+# deben abrir con clic derecho → Abrir.
 
 set -euo pipefail
 
@@ -24,18 +26,12 @@ PROJECT="$REPO_ROOT/MenuTimer.xcodeproj"
 SCHEME="MenuTimer"
 CONFIG="Release"
 
-# Team ID e identidad de firma. Deben venir obligatoriamente de variables de
-# entorno; NO se hardcodean para no exponer la cuenta de firma en el repo.
-# OJO: xcodebuild traduce el nombre "Apple Development" a "Mac Development" y
-# no lo encuentra. Hay que pasar el hash SHA-1 exacto del cert del llavero
-# (security find-identity -v -p codesigning).
-if [[ -z "${DEVELOPMENT_TEAM:-}" || -z "${CODE_SIGN_IDENTITY:-}" ]]; then
-    echo "ERROR: faltan DEVELOPMENT_TEAM (Team ID) y/o CODE_SIGN_IDENTITY (hash SHA-1 del cert)." >&2
-    echo "       Ej.:" >&2
-    echo "         export DEVELOPMENT_TEAM=XXXXXXXXXX" >&2
-    echo "         export CODE_SIGN_IDENTITY=\$(security find-identity -v -p codesigning | head -1 | awk '{print \$2}')" >&2
-    exit 1
-fi
+# Team ID para la firma automática. Sobrescribe con la variable de entorno
+# DEVELOPMENT_TEAM si cambias de cuenta. Debe coincidir con el Team que
+# tienes seleccionado en Xcode → Signing & Capabilities.
+DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-7NZNHD46LC}"
+
+echo "==> Firmando (automática) con Team: $DEVELOPMENT_TEAM"
 
 VERSION="${1:-}"
 
@@ -56,7 +52,7 @@ else
     VERSION_OVERRIDE=()
 fi
 
-# ---- Archive (firma manual con cert Apple Development) ----
+# ---- Archive (firma automática; Xcode gestiona el perfil) ----
 echo "==> Archive"
 xcodebuild \
     -project "$PROJECT" \
@@ -64,10 +60,9 @@ xcodebuild \
     -configuration "$CONFIG" \
     -archivePath "$ARCHIVE_PATH" \
     -destination 'generic/platform=macOS' \
-    CODE_SIGN_STYLE=Manual \
+    -allowProvisioningUpdates \
+    CODE_SIGN_STYLE=Automatic \
     DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
-    CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
-    PROVISIONING_PROFILE_SPECIFIER="" \
     ${VERSION_OVERRIDE[@]+"${VERSION_OVERRIDE[@]}"} \
     archive
 
